@@ -7,9 +7,6 @@ using Microsoft.Win32;
 
 namespace SAMPLauncher
 {
-    /// <summary>
-    /// Логика взаимодействия для MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
         // Настройки подключения к серверу
