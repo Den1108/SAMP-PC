@@ -3,51 +3,59 @@ using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Input; // Добавлено для перетаскивания окна
 using Microsoft.Win32;
 
 namespace SAMPLauncher
 {
     public partial class MainWindow : Window
     {
-        // Настройки подключения к серверу
         private string configPath = "config.json";
+        
+        // ДАННЫЕ ВАШЕГО СЕРВЕРА
         private string serverIP = "188.127.241.8"; 
         private string serverPort = "1179";
 
         public MainWindow()
         {
             InitializeComponent();
-            LoadSettings(); // Загружаем ник и путь при запуске
+            LoadSettings();
+            
+            // Устанавливаем IP в интерфейс (в блок мониторинга)
+            // В будущем здесь можно сделать реальный опрос сервера
+            // ServerInfoText.Text = $"Flyt RP | {serverIP}"; 
         }
 
-        /// <summary>
-        /// Логика кнопки "ИГРАТЬ"
-        /// </summary>
+        // Логика кнопки "ИГРАТЬ" (без изменений, ищем samp.exe)
         private void Play_Click(object sender, RoutedEventArgs e)
         {
-            // Проверяем путь к папке
-            string gameDir = GamePathBox.Text ?? "";
+            string gameDir = GamePathBox?.Text ?? ""; // GamePathBox нужно добавить в разметку настроек, если решишь делать отдельное окно настроек. Пока используем сохраненный путь.
+            
+            // Так как в новом дизайне мы убрали поле пути с главного экрана, 
+            // получаем путь из настроек. Если пути нет, просим выбрать.
+            if (string.IsNullOrEmpty(gameDir) || gameDir == AppDomain.CurrentDomain.BaseDirectory)
+            {
+                MessageBox.Show("Пожалуйста, укажите путь к папке с игрой в настройках (иконка шестеренки).", "Настройка пути");
+                SelectPath_Click(sender, e);
+                return;
+            }
+
             string sampExe = Path.Combine(gameDir, "samp.exe");
 
-            // Проверка: установлен ли SAMP в выбранной папке
             if (!File.Exists(sampExe))
             {
-                MessageBox.Show("Файл samp.exe не найден! Выберите папку, где установлен SAMP.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Файл samp.exe не найден! Убедитесь, что в выбранной папке установлен SAMP.", "Ошибка");
                 return;
             }
 
-            // Проверка: введен ли ник
-            if (string.IsNullOrWhiteSpace(NickNameBox.Text))
+            if (string.IsNullOrWhiteSpace(NickNameBox.Text) || NickNameBox.Text == "Jake_Toren") // "Jake_Toren" - это placeholder
             {
-                MessageBox.Show("Пожалуйста, введите ваш никнейм перед игрой.", "Внимание");
+                MessageBox.Show("Пожалуйста, введите ваш уникальный никнейм.", "Внимание");
                 return;
             }
 
-            // Сохраняем данные перед запуском
             SaveSettings();
 
-            // Формируем аргументы для samp.exe: "IP:PORT -nNICKNAME"
-            // ВАЖНО: Между -n и ником не должно быть пробела
             string arguments = $"{serverIP}:{serverPort} -n{NickNameBox.Text.Trim()}";
 
             try
@@ -56,24 +64,20 @@ namespace SAMPLauncher
                 {
                     FileName = sampExe,
                     Arguments = arguments,
-                    WorkingDirectory = gameDir, // Запуск из директории игры для подгрузки samp.dll
+                    WorkingDirectory = gameDir,
                     UseShellExecute = true
                 };
-
                 Process.Start(startInfo);
                 
-                // Опционально: закрыть лаунчер после запуска
-                // Application.Current.Shutdown();
+                // Application.Current.Shutdown(); // Раскомментируй, если хочешь закрывать лаунчер
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Не удалось запустить SAMP: {ex.Message}", "Критическая ошибка");
+                MessageBox.Show($"Ошибка запуска: {ex.Message}");
             }
         }
 
-        /// <summary>
-        /// Выбор пути к игре через проводник
-        /// </summary>
+        // Выбор пути к игре (теперь вызывается через шестеренку)
         private void SelectPath_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog
@@ -85,36 +89,60 @@ namespace SAMPLauncher
 
             if (openFileDialog.ShowDialog() == true)
             {
-                // Записываем путь к папке, а не к самому файлу
-                GamePathBox.Text = Path.GetDirectoryName(openFileDialog.FileName) ?? "";
+                // Сохраняем путь к папке в невидимое поле или переменную
+                // Для простоты в этом примере мы просто сохраним его в конфиг
+                string path = Path.GetDirectoryName(openFileDialog.FileName) ?? "";
+                
+                // Костыль для примера: обновляем конфиг напрямую
+                var config = new LauncherConfig
+                {
+                    Nickname = NickNameBox.Text,
+                    GamePath = path
+                };
+                string json = JsonSerializer.Serialize(config);
+                File.WriteAllText(configPath, json);
+                
+                MessageBox.Show("Путь к игре успешно сохранен!", "Настройки");
             }
         }
 
-        /// <summary>
-        /// Сохранение настроек в config.json
-        /// </summary>
+        // Позволяет перетаскивать окно, удерживая верхнюю панель
+        private void Header_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Left)
+                this.DragMove();
+        }
+
+        // Кнопка закрытия окна
+        private void Close_Click(object sender, RoutedEventArgs e)
+        {
+            Application.Current.Shutdown();
+        }
+
         private void SaveSettings()
         {
             try
             {
+                // Получаем старый конфиг, чтобы не затереть путь к игре
+                string gamePath = AppDomain.CurrentDomain.BaseDirectory;
+                if (File.Exists(configPath))
+                {
+                    var oldConfig = JsonSerializer.Deserialize<LauncherConfig>(File.ReadAllText(configPath));
+                    gamePath = oldConfig?.GamePath ?? gamePath;
+                }
+
                 var config = new LauncherConfig
                 {
                     Nickname = NickNameBox.Text,
-                    GamePath = GamePathBox.Text
+                    GamePath = gamePath
                 };
 
-                string json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
+                string json = JsonSerializer.Serialize(config);
                 File.WriteAllText(configPath, json);
             }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Ошибка сохранения конфига: {ex.Message}");
-            }
+            catch { }
         }
 
-        /// <summary>
-        /// Загрузка сохраненных данных
-        /// </summary>
         private void LoadSettings()
         {
             if (File.Exists(configPath))
@@ -126,22 +154,17 @@ namespace SAMPLauncher
 
                     if (config != null)
                     {
-                        NickNameBox.Text = config.Nickname ?? "";
-                        GamePathBox.Text = config.GamePath ?? AppDomain.CurrentDomain.BaseDirectory;
+                        NickNameBox.Text = config.Nickname ?? "Jake_Toren";
+                        // Мы не отображаем путь на главном экране, он просто используется при запуске
                         return;
                     }
                 }
-                catch { /* Ошибка чтения — используем стандартные значения */ }
+                catch { }
             }
-
-            // Если конфига нет, ставим путь по умолчанию (папка лаунчера)
-            GamePathBox.Text = AppDomain.CurrentDomain.BaseDirectory;
+            NickNameBox.Text = "Jake_Toren";
         }
     }
 
-    /// <summary>
-    /// Класс модели данных для JSON
-    /// </summary>
     public class LauncherConfig
     {
         public string? Nickname { get; set; }
