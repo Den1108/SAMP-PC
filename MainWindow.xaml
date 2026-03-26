@@ -1,32 +1,153 @@
 <Window x:Class="SAMPLauncher.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="FlytMobile Launcher" Height="450" Width="800" 
-        Background="#121212" WindowStartupLocation="CenterScreen" Foreground="White">
-    <Grid>
-        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Width="400">
-            <TextBlock Text="FLYTMOBILE" FontSize="36" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,30" Foreground="#BB86FC"/>
-            
-            <TextBlock Text="Введите ваш никнейм:" Margin="0,5"/>
-            <TextBox x:Name="NickNameBox" Height="35" Background="#1E1E1E" Foreground="White" BorderBrush="#BB86FC" VerticalContentAlignment="Center" Padding="5,0"/>
-            
-            <TextBlock Text="Путь к игре:" Margin="0,15,0,5"/>
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBox x:Name="GamePathBox" IsReadOnly="True" Background="#1E1E1E" Foreground="Gray" Height="30" VerticalContentAlignment="Center" Padding="5,0"/>
-                <Button Content="Обзор" Grid.Column="1" Click="SelectPath_Click" Width="80" Margin="5,0,0,0" Background="#3700B3" Foreground="White" BorderThickness="0"/>
+        Title="Flyt RP Launcher" Height="720" Width="1280" 
+        WindowStartupLocation="CenterScreen" Icon="Assets/logo.png"
+        AllowsTransparency="True" WindowStyle="None" Background="Transparent">
+    
+    <Window.Resources>
+        <Style x:Key="SocialButton" TargetType="Button">
+            <Setter Property="Background" Value="#2A2D34"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Margin" Value="0,0,10,0"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Resources>
+                <Style TargetType="Border">
+                    <Setter Property="CornerRadius" Value="20"/>
+                </Style>
+            </Style.Resources>
+        </Style>
+        
+        <Style x:Key="NewsCard" TargetType="Border">
+            <Setter Property="Background" Value="#1E2124"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Margin" Value="0,0,20,0"/>
+            <Setter Property="Width" Value="250"/>
+            <Setter Property="Height" Value="150"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="15" Direction="270" Opacity="0.3" ShadowDepth="3"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border CornerRadius="15" Background="#121417" BorderBrush="#2A2D34" BorderThickness="1">
+        <Grid>
+            <Grid.Background>
+                <ImageBrush ImageSource="Assets/bg.png" Stretch="UniformToFill" Opacity="0.15"/>
+            </Grid.Background>
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="60"/> <RowDefinition Height="*"/>   <RowDefinition Height="80"/>  </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Background="#1A1D21" MouseDown="Header_MouseDown">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="20,0">
+                    <Image Source="Assets/logo.png" Width="30" Height="30" Margin="0,0,10,0"/>
+                    <TextBlock Text="Flyt RP" Foreground="White" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <Border Background="#2A2D34" CornerRadius="5" Margin="15,12" Padding="10,0">
+                        <TextBlock Text="MODS" Foreground="#8A8F98" FontSize="12" VerticalAlignment="Center"/>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="20,0">
+                    <Border Background="#121417" CornerRadius="5" Width="200" Height="35" Margin="0,0,20,0" BorderBrush="#2A2D34" BorderThickness="1">
+                        <Grid>
+                            <TextBlock Text="Никнейм..." Foreground="#5C616A" Margin="10,0" VerticalAlignment="Center" 
+                                       Visibility="{Binding Text, ElementName=NickNameBox, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            <TextBox x:Name="NickNameBox" Background="Transparent" Foreground="White" BorderThickness="0" 
+                                     VerticalContentAlignment="Center" Padding="10,0" FontSize="14" Text="Jake_Toren"/>
+                        </Grid>
+                    </Border>
+                    
+                    <Button Content="⚙" Background="Transparent" Foreground="#8A8F98" FontSize="20" BorderThickness="0" Cursor="Hand" Click="SelectPath_Click"/>
+                    <Button Content="✕" Background="Transparent" Foreground="#8A8F98" FontSize="20" BorderThickness="0" Cursor="Hand" Margin="10,0,0,0" Click="Close_Click"/>
+                </StackPanel>
             </Grid>
 
-            <Button Content="ИГРАТЬ" Click="Play_Click" Height="50" Margin="0,40,0,0" Background="#03DAC6" Foreground="#000" FontSize="18" FontWeight="Bold" Cursor="Hand">
-                <Button.Resources>
-                    <Style TargetType="Border">
-                        <Setter Property="CornerRadius" Value="5"/>
-                    </Style>
-                </Button.Resources>
-            </Button>
-        </StackPanel>
-    </Grid>
+            <Grid Grid.Row="1" Margin="40,30">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="1*"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="FLYT RP" Foreground="White" FontSize="48" FontWeight="Black" Margin="0,0,0,10"/>
+                    
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,40">
+                        <Button Style="{StaticResource SocialButton}" Content="WEB" Tag="https://flyt-rp.ru"/>
+                        <Button Style="{StaticResource SocialButton}" Content="VK" Tag="https://vk.com/flytrp"/>
+                        <Button Style="{StaticResource SocialButton}" Content="TG" Tag="https://t.me/flytrp"/>
+                        <Button Style="{StaticResource SocialButton}" Content="DS" Tag="https://discord.gg/flytrp"/>
+                    </StackPanel>
+
+                    <TextBlock Text="ПОСЛЕДНИЕ ОБНОВЛЕНИЯ" Foreground="#8A8F98" FontSize="14" FontWeight="Bold" Margin="0,0,0,15"/>
+                    <StackPanel Orientation="Horizontal">
+                        <Border Style="{StaticResource NewsCard}">
+                            <Grid>
+                                <Image Source="Assets/news1.png" Stretch="UniformToFill" Opacity="0.5"/>
+                                <TextBlock Text="Запуск нового сервера..." Foreground="White" FontSize="16" FontWeight="Bold" VerticalAlignment="Bottom" Margin="15"/>
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource NewsCard}">
+                            <Grid>
+                                <Image Source="Assets/news2.png" Stretch="UniformToFill" Opacity="0.5"/>
+                                <TextBlock Text="Обновление пака машин" Foreground="White" FontSize="16" FontWeight="Bold" VerticalAlignment="Bottom" Margin="15"/>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+
+                <Image Grid.Column="1" Source="Assets/char.png" Stretch="Uniform" HorizontalAlignment="Right" Margin="0,-50,-40,-80" Opacity="0.8"/>
+            </Grid>
+
+            <Grid Grid.Row="2" Background="#1A1D21" Margin="0,0,0,0">
+                <Border CornerRadius="0,0,15,15" Background="#1A1D21"/>
+                <Grid Margin="30,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,30,0">
+                        <TextBlock x:Name="StatusText" Text="Готово к игре" Foreground="White" FontSize="14" Margin="0,0,0,5"/>
+                        <Grid>
+                            <ProgressBar x:Name="DownloadProgress" Value="100" Height="10" Background="#121417" Foreground="#32CD32" BorderThickness="0">
+                                <ProgressBar.Resources>
+                                    <Style TargetType="Border">
+                                        <Setter Property="CornerRadius" Value="5"/>
+                                    </Style>
+                                </ProgressBar.Resources>
+                            </ProgressBar>
+                            <TextBlock Text="100%" Foreground="White" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <Border Grid.Column="1" Background="#121417" CornerRadius="10" Height="50" Padding="15,0" VerticalAlignment="Center" Margin="0,0,20,0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Ellipse Width="8" Height="8" Fill="#32CD32" Margin="0,0,10,0"/>
+                            <TextBlock Text="Flyt RolePlay | Кнопка" Foreground="White" FontSize="14" VerticalAlignment="Center"/>
+                            <TextBlock Text=" 120/1000" Foreground="#8A8F98" FontSize="14" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Button Grid.Column="2" Content="ИГРАТЬ ›" Click="Play_Click" Width="200" Height="50" Background="#32CD32" Foreground="White" FontSize="18" FontWeight="Bold" Cursor="Hand" VerticalAlignment="Center">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="10"/>
+                            </Style>
+                        </Button.Resources>
+                        <Button.Effect>
+                            <DropShadowEffect BlurRadius="15" Color="#32CD32" Opacity="0.4" ShadowDepth="0"/>
+                        </Button.Effect>
+                    </Button>
+                </Grid>
+            </Grid>
+        </Grid>
+    </Border>
 </Window>
