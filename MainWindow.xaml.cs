@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Windows;
-using System.Windows.Input; // Добавлено для перетаскивания окна
+using System.Windows.Input;
 using Microsoft.Win32;
 
 namespace SAMPLauncher
@@ -12,6 +12,9 @@ namespace SAMPLauncher
     {
         private string configPath = "config.json";
         
+        // Поля для хранения настроек в памяти
+        private string _gamePath = "";
+        
         // ДАННЫЕ ВАШЕГО СЕРВЕРА
         private string serverIP = "188.127.241.8"; 
         private string serverPort = "1179";
@@ -19,38 +22,31 @@ namespace SAMPLauncher
         public MainWindow()
         {
             InitializeComponent();
-            LoadSettings();
-            
-            // Устанавливаем IP в интерфейс (в блок мониторинга)
-            // В будущем здесь можно сделать реальный опрос сервера
-            // ServerInfoText.Text = $"Flyt RP | {serverIP}"; 
+            LoadSettings(); // Загружаем ник и путь к игре из конфига
         }
 
-        // Логика кнопки "ИГРАТЬ" (без изменений, ищем samp.exe)
+        // Логика кнопки "ИГРАТЬ"
         private void Play_Click(object sender, RoutedEventArgs e)
         {
-            string gameDir = GamePathBox?.Text ?? ""; // GamePathBox нужно добавить в разметку настроек, если решишь делать отдельное окно настроек. Пока используем сохраненный путь.
-            
-            // Так как в новом дизайне мы убрали поле пути с главного экрана, 
-            // получаем путь из настроек. Если пути нет, просим выбрать.
-            if (string.IsNullOrEmpty(gameDir) || gameDir == AppDomain.CurrentDomain.BaseDirectory)
+            // Используем переменную _gamePath вместо отсутствующего GamePathBox
+            if (string.IsNullOrEmpty(_gamePath) || _gamePath == AppDomain.CurrentDomain.BaseDirectory)
             {
                 MessageBox.Show("Пожалуйста, укажите путь к папке с игрой в настройках (иконка шестеренки).", "Настройка пути");
                 SelectPath_Click(sender, e);
                 return;
             }
 
-            string sampExe = Path.Combine(gameDir, "samp.exe");
+            string sampExe = Path.Combine(_gamePath, "samp.exe");
 
             if (!File.Exists(sampExe))
             {
-                MessageBox.Show("Файл samp.exe не найден! Убедитесь, что в выбранной папке установлен SAMP.", "Ошибка");
+                MessageBox.Show("Файл samp.exe не найден! Проверьте путь в настройках.", "Ошибка");
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(NickNameBox.Text) || NickNameBox.Text == "Jake_Toren") // "Jake_Toren" - это placeholder
+            if (string.IsNullOrWhiteSpace(NickNameBox.Text) || NickNameBox.Text == "Jake_Toren")
             {
-                MessageBox.Show("Пожалуйста, введите ваш уникальный никнейм.", "Внимание");
+                MessageBox.Show("Пожалуйста, введите ваш никнейм.", "Внимание");
                 return;
             }
 
@@ -64,12 +60,10 @@ namespace SAMPLauncher
                 {
                     FileName = sampExe,
                     Arguments = arguments,
-                    WorkingDirectory = gameDir,
+                    WorkingDirectory = _gamePath,
                     UseShellExecute = true
                 };
                 Process.Start(startInfo);
-                
-                // Application.Current.Shutdown(); // Раскомментируй, если хочешь закрывать лаунчер
             }
             catch (Exception ex)
             {
@@ -77,7 +71,7 @@ namespace SAMPLauncher
             }
         }
 
-        // Выбор пути к игре (теперь вызывается через шестеренку)
+        // Выбор пути к игре (через шестеренку)
         private void SelectPath_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog
@@ -89,31 +83,18 @@ namespace SAMPLauncher
 
             if (openFileDialog.ShowDialog() == true)
             {
-                // Сохраняем путь к папке в невидимое поле или переменную
-                // Для простоты в этом примере мы просто сохраним его в конфиг
-                string path = Path.GetDirectoryName(openFileDialog.FileName) ?? "";
-                
-                // Костыль для примера: обновляем конфиг напрямую
-                var config = new LauncherConfig
-                {
-                    Nickname = NickNameBox.Text,
-                    GamePath = path
-                };
-                string json = JsonSerializer.Serialize(config);
-                File.WriteAllText(configPath, json);
-                
-                MessageBox.Show("Путь к игре успешно сохранен!", "Настройки");
+                _gamePath = Path.GetDirectoryName(openFileDialog.FileName) ?? "";
+                SaveSettings(); // Сразу сохраняем выбранный путь
+                MessageBox.Show("Путь к игре успешно сохранен!", "Flyt RP");
             }
         }
 
-        // Позволяет перетаскивать окно, удерживая верхнюю панель
         private void Header_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ChangedButton == MouseButton.Left)
                 this.DragMove();
         }
 
-        // Кнопка закрытия окна
         private void Close_Click(object sender, RoutedEventArgs e)
         {
             Application.Current.Shutdown();
@@ -123,21 +104,12 @@ namespace SAMPLauncher
         {
             try
             {
-                // Получаем старый конфиг, чтобы не затереть путь к игре
-                string gamePath = AppDomain.CurrentDomain.BaseDirectory;
-                if (File.Exists(configPath))
-                {
-                    var oldConfig = JsonSerializer.Deserialize<LauncherConfig>(File.ReadAllText(configPath));
-                    gamePath = oldConfig?.GamePath ?? gamePath;
-                }
-
                 var config = new LauncherConfig
                 {
                     Nickname = NickNameBox.Text,
-                    GamePath = gamePath
+                    GamePath = _gamePath
                 };
-
-                string json = JsonSerializer.Serialize(config);
+                string json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(configPath, json);
             }
             catch { }
@@ -155,12 +127,14 @@ namespace SAMPLauncher
                     if (config != null)
                     {
                         NickNameBox.Text = config.Nickname ?? "Jake_Toren";
-                        // Мы не отображаем путь на главном экране, он просто используется при запуске
+                        _gamePath = config.GamePath ?? AppDomain.CurrentDomain.BaseDirectory;
                         return;
                     }
                 }
                 catch { }
             }
+            
+            _gamePath = AppDomain.CurrentDomain.BaseDirectory;
             NickNameBox.Text = "Jake_Toren";
         }
     }
