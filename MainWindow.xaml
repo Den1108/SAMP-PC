@@ -1,8 +1,11 @@
 <Window x:Class="SAMPLauncher.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
         Title="Flyt RP Launcher" Height="720" Width="1280" 
-        WindowStartupLocation="CenterScreen" Icon="Assets/logo.png"
+        WindowStartupLocation="CenterScreen"
         AllowsTransparency="True" WindowStyle="None" Background="Transparent">
     
     <Window.Resources>
@@ -14,6 +17,7 @@
             <Setter Property="Margin" Value="0,0,10,0"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="10"/>
             <Style.Resources>
                 <Style TargetType="Border">
                     <Setter Property="CornerRadius" Value="20"/>
@@ -38,17 +42,12 @@
 
     <Border CornerRadius="15" Background="#121417" BorderBrush="#2A2D34" BorderThickness="1">
         <Grid>
-            <Grid.Background>
-                <ImageBrush ImageSource="Assets/bg.png" Stretch="UniformToFill" Opacity="0.15"/>
-            </Grid.Background>
-
             <Grid.RowDefinitions>
                 <RowDefinition Height="60"/> <RowDefinition Height="*"/>   <RowDefinition Height="80"/>  </Grid.RowDefinitions>
 
             <Grid Grid.Row="0" Background="#1A1D21" MouseDown="Header_MouseDown">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="20,0">
-                    <Image Source="Assets/logo.png" Width="30" Height="30" Margin="0,0,10,0"/>
-                    <TextBlock Text="Flyt RP" Foreground="White" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <TextBlock Text="FLYT RP" Foreground="White" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
                     <Border Background="#2A2D34" CornerRadius="5" Margin="15,12" Padding="10,0">
                         <TextBlock Text="MODS" Foreground="#8A8F98" FontSize="12" VerticalAlignment="Center"/>
                     </Border>
@@ -56,16 +55,12 @@
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="20,0">
                     <Border Background="#121417" CornerRadius="5" Width="200" Height="35" Margin="0,0,20,0" BorderBrush="#2A2D34" BorderThickness="1">
-                        <Grid>
-                            <TextBlock Text="Никнейм..." Foreground="#5C616A" Margin="10,0" VerticalAlignment="Center" 
-                                       Visibility="{Binding Text, ElementName=NickNameBox, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                            <TextBox x:Name="NickNameBox" Background="Transparent" Foreground="White" BorderThickness="0" 
-                                     VerticalContentAlignment="Center" Padding="10,0" FontSize="14" Text="Jake_Toren"/>
-                        </Grid>
+                        <TextBox x:Name="NickNameBox" Background="Transparent" Foreground="White" BorderThickness="0" 
+                                 VerticalContentAlignment="Center" Padding="10,0" FontSize="14" Text="Jake_Toren"/>
                     </Border>
                     
-                    <Button Content="⚙" Background="Transparent" Foreground="#8A8F98" FontSize="20" BorderThickness="0" Cursor="Hand" Click="SelectPath_Click"/>
-                    <Button Content="✕" Background="Transparent" Foreground="#8A8F98" FontSize="20" BorderThickness="0" Cursor="Hand" Margin="10,0,0,0" Click="Close_Click"/>
+                    <Button Content="⚙" Background="Transparent" Foreground="#8A8F98" FontSize="20" BorderThickness="0" Cursor="Hand" Click="SelectPath_Click" Margin="0,0,10,0"/>
+                    <Button Content="✕" Background="Transparent" Foreground="#8A8F98" FontSize="20" BorderThickness="0" Cursor="Hand" Click="Close_Click"/>
                 </StackPanel>
             </Grid>
 
@@ -79,33 +74,29 @@
                     <TextBlock Text="FLYT RP" Foreground="White" FontSize="48" FontWeight="Black" Margin="0,0,0,10"/>
                     
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,40">
-                        <Button Style="{StaticResource SocialButton}" Content="WEB" Tag="https://flyt-rp.ru"/>
-                        <Button Style="{StaticResource SocialButton}" Content="VK" Tag="https://vk.com/flytrp"/>
-                        <Button Style="{StaticResource SocialButton}" Content="TG" Tag="https://t.me/flytrp"/>
-                        <Button Style="{StaticResource SocialButton}" Content="DS" Tag="https://discord.gg/flytrp"/>
+                        <Button Style="{StaticResource SocialButton}" Content="WEB"/>
+                        <Button Style="{StaticResource SocialButton}" Content="VK"/>
+                        <Button Style="{StaticResource SocialButton}" Content="TG"/>
+                        <Button Style="{StaticResource SocialButton}" Content="DS"/>
                     </StackPanel>
 
                     <TextBlock Text="ПОСЛЕДНИЕ ОБНОВЛЕНИЯ" Foreground="#8A8F98" FontSize="14" FontWeight="Bold" Margin="0,0,0,15"/>
                     <StackPanel Orientation="Horizontal">
                         <Border Style="{StaticResource NewsCard}">
-                            <Grid>
-                                <Image Source="Assets/news1.png" Stretch="UniformToFill" Opacity="0.5"/>
-                                <TextBlock Text="Запуск нового сервера..." Foreground="White" FontSize="16" FontWeight="Bold" VerticalAlignment="Bottom" Margin="15"/>
-                            </Grid>
+                            <TextBlock Text="Новость #1 (Без фото)" Foreground="White" FontSize="16" FontWeight="Bold" VerticalAlignment="Bottom" Margin="15"/>
                         </Border>
                         <Border Style="{StaticResource NewsCard}">
-                            <Grid>
-                                <Image Source="Assets/news2.png" Stretch="UniformToFill" Opacity="0.5"/>
-                                <TextBlock Text="Обновление пака машин" Foreground="White" FontSize="16" FontWeight="Bold" VerticalAlignment="Bottom" Margin="15"/>
-                            </Grid>
+                            <TextBlock Text="Новость #2 (Без фото)" Foreground="White" FontSize="16" FontWeight="Bold" VerticalAlignment="Bottom" Margin="15"/>
                         </Border>
                     </StackPanel>
                 </StackPanel>
 
-                <Image Grid.Column="1" Source="Assets/char.png" Stretch="Uniform" HorizontalAlignment="Right" Margin="0,-50,-40,-80" Opacity="0.8"/>
+                <Border Grid.Column="1" Background="#1A1D21" CornerRadius="10" Margin="20,0,0,0">
+                    <TextBlock Text="[Место для арта]" Foreground="#3C4047" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
             </Grid>
 
-            <Grid Grid.Row="2" Background="#1A1D21" Margin="0,0,0,0">
+            <Grid Grid.Row="2" Background="#1A1D21">
                 <Border CornerRadius="0,0,15,15" Background="#1A1D21"/>
                 <Grid Margin="30,0">
                     <Grid.ColumnDefinitions>
@@ -131,7 +122,7 @@
                     <Border Grid.Column="1" Background="#121417" CornerRadius="10" Height="50" Padding="15,0" VerticalAlignment="Center" Margin="0,0,20,0">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <Ellipse Width="8" Height="8" Fill="#32CD32" Margin="0,0,10,0"/>
-                            <TextBlock Text="Flyt RolePlay | Кнопка" Foreground="White" FontSize="14" VerticalAlignment="Center"/>
+                            <TextBlock Text="Flyt RP | Кнопка" Foreground="White" FontSize="14" VerticalAlignment="Center"/>
                             <TextBlock Text=" 120/1000" Foreground="#8A8F98" FontSize="14" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Border>
