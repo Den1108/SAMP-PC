@@ -1,0 +1,32 @@
+<Window x:Class="SAMPLauncher.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="FlytMobile Launcher" Height="450" Width="800" 
+        Background="#121212" WindowStartupLocation="CenterScreen" Foreground="White">
+    <Grid>
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Width="400">
+            <TextBlock Text="FLYTMOBILE" FontSize="36" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,30" Foreground="#BB86FC"/>
+            
+            <TextBlock Text="Введите ваш никнейм:" Margin="0,5"/>
+            <TextBox x:Name="NickNameBox" Height="35" Background="#1E1E1E" Foreground="White" BorderBrush="#BB86FC" VerticalContentAlignment="Center" Padding="5,0"/>
+            
+            <TextBlock Text="Путь к игре:" Margin="0,15,0,5"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="GamePathBox" IsReadOnly="True" Background="#1E1E1E" Foreground="Gray" Height="30" VerticalContentAlignment="Center" Padding="5,0"/>
+                <Button Content="Обзор" Grid.Column="1" Click="SelectPath_Click" Width="80" Margin="5,0,0,0" Background="#3700B3" Foreground="White" BorderThickness="0"/>
+            </Grid>
+
+            <Button Content="ИГРАТЬ" Click="Play_Click" Height="50" Margin="0,40,0,0" Background="#03DAC6" Foreground="#000" FontSize="18" FontWeight="Bold" Cursor="Hand">
+                <Button.Resources>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="5"/>
+                    </Style>
+                </Button.Resources>
+            </Button>
+        </StackPanel>
+    </Grid>
+</Window>
