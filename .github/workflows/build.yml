@@ -5,21 +5,28 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      # Используем v4 для получения исходного кода
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
+      # Используем v4 для настройки .NET
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
 
+      # Восстановление зависимостей
       - name: Restore dependencies
         run: dotnet restore
 
+      # Сборка проекта в режиме Release
       - name: Build
         run: dotnet build --configuration Release --no-restore
 
+      # ВАЖНО: Используем v4 для загрузки готового файла
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Launcher-Build
+          # Указываем путь к собранным файлам
           path: bin/Release/net8.0-windows/
