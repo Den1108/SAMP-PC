@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
@@ -6,8 +7,12 @@ using Microsoft.Win32;
 
 namespace SAMPLauncher
 {
+    /// <summary>
+    /// Логика взаимодействия для MainWindow.xaml
+    /// </summary>
     public partial class MainWindow : Window
     {
+        // Настройки подключения к серверу
         private string configPath = "config.json";
         private string serverIP = "188.127.241.8"; 
         private string serverPort = "1179";
@@ -15,97 +20,133 @@ namespace SAMPLauncher
         public MainWindow()
         {
             InitializeComponent();
-            LoadSettings(); 
+            LoadSettings(); // Загружаем ник и путь при запуске
         }
 
+        /// <summary>
+        /// Логика кнопки "ИГРАТЬ"
+        /// </summary>
         private void Play_Click(object sender, RoutedEventArgs e)
         {
-            // Используем ?? "" чтобы избежать предупреждения о null
-            string gamePath = GamePathBox.Text ?? "";
-            string gtaExe = Path.Combine(gamePath, "gta_sa.exe");
+            // Проверяем путь к папке
+            string gameDir = GamePathBox.Text ?? "";
+            string sampExe = Path.Combine(gameDir, "samp.exe");
 
-            if (!File.Exists(gtaExe))
+            // Проверка: установлен ли SAMP в выбранной папке
+            if (!File.Exists(sampExe))
             {
-                MessageBox.Show("Файл gta_sa.exe не найден!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Файл samp.exe не найден! Выберите папку, где установлен SAMP.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
+            // Проверка: введен ли ник
             if (string.IsNullOrWhiteSpace(NickNameBox.Text))
             {
-                MessageBox.Show("Введите никнейм!", "Внимание");
+                MessageBox.Show("Пожалуйста, введите ваш никнейм перед игрой.", "Внимание");
                 return;
             }
 
+            // Сохраняем данные перед запуском
             SaveSettings();
 
-            string arguments = $"-c -h {serverIP} -p {serverPort} -n {NickNameBox.Text}";
+            // Формируем аргументы для samp.exe: "IP:PORT -nNICKNAME"
+            // ВАЖНО: Между -n и ником не должно быть пробела
+            string arguments = $"{serverIP}:{serverPort} -n{NickNameBox.Text.Trim()}";
 
             try
             {
                 ProcessStartInfo startInfo = new ProcessStartInfo
                 {
-                    FileName = gtaExe,
+                    FileName = sampExe,
                     Arguments = arguments,
-                    WorkingDirectory = gamePath 
+                    WorkingDirectory = gameDir, // Запуск из директории игры для подгрузки samp.dll
+                    UseShellExecute = true
                 };
+
                 Process.Start(startInfo);
+                
+                // Опционально: закрыть лаунчер после запуска
+                // Application.Current.Shutdown();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка при запуске: {ex.Message}");
+                MessageBox.Show($"Не удалось запустить SAMP: {ex.Message}", "Критическая ошибка");
             }
         }
 
+        /// <summary>
+        /// Выбор пути к игре через проводник
+        /// </summary>
         private void SelectPath_Click(object sender, RoutedEventArgs e)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Filter = "GTA Executable (gta_sa.exe)|gta_sa.exe";
+            OpenFileDialog openFileDialog = new OpenFileDialog
+            {
+                Title = "Выберите samp.exe в папке с игрой",
+                Filter = "SAMP Executable (samp.exe)|samp.exe",
+                CheckFileExists = true
+            };
+
             if (openFileDialog.ShowDialog() == true)
             {
-                // Если путь не найден, записываем пустую строку
+                // Записываем путь к папке, а не к самому файлу
                 GamePathBox.Text = Path.GetDirectoryName(openFileDialog.FileName) ?? "";
             }
         }
 
+        /// <summary>
+        /// Сохранение настроек в config.json
+        /// </summary>
         private void SaveSettings()
         {
-            var data = new LauncherConfig
+            try
             {
-                Nickname = NickNameBox.Text,
-                GamePath = GamePathBox.Text
-            };
-            string json = JsonSerializer.Serialize(data);
-            File.WriteAllText(configPath, json);
+                var config = new LauncherConfig
+                {
+                    Nickname = NickNameBox.Text,
+                    GamePath = GamePathBox.Text
+                };
+
+                string json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(configPath, json);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Ошибка сохранения конфига: {ex.Message}");
+            }
         }
 
+        /// <summary>
+        /// Загрузка сохраненных данных
+        /// </summary>
         private void LoadSettings()
         {
             if (File.Exists(configPath))
             {
-                try 
+                try
                 {
                     string json = File.ReadAllText(configPath);
-                    var data = JsonSerializer.Deserialize<LauncherConfig>(json);
-                    
-                    // Безопасно устанавливаем значения
-                    NickNameBox.Text = data?.Nickname ?? "";
-                    GamePathBox.Text = data?.GamePath ?? AppDomain.CurrentDomain.BaseDirectory;
+                    var config = JsonSerializer.Deserialize<LauncherConfig>(json);
+
+                    if (config != null)
+                    {
+                        NickNameBox.Text = config.Nickname ?? "";
+                        GamePathBox.Text = config.GamePath ?? AppDomain.CurrentDomain.BaseDirectory;
+                        return;
+                    }
                 }
-                catch 
-                {
-                    GamePathBox.Text = AppDomain.CurrentDomain.BaseDirectory;
-                }
+                catch { /* Ошибка чтения — используем стандартные значения */ }
             }
-            else
-            {
-                GamePathBox.Text = AppDomain.CurrentDomain.BaseDirectory;
-            }
+
+            // Если конфига нет, ставим путь по умолчанию (папка лаунчера)
+            GamePathBox.Text = AppDomain.CurrentDomain.BaseDirectory;
         }
     }
 
+    /// <summary>
+    /// Класс модели данных для JSON
+    /// </summary>
     public class LauncherConfig
     {
-        // Добавляем ?, чтобы разрешить пустые значения и убрать предупреждения компилятора
         public string? Nickname { get; set; }
         public string? GamePath { get; set; }
     }
