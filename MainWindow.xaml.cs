@@ -78,36 +78,44 @@ namespace SAMPLauncher
                 using (UdpClient udpClient = new UdpClient())
                 {
                     udpClient.Connect(ip, port);
-                    udpClient.Client.ReceiveTimeout = 3000; // Ждем ответ 3 секунды
+                    udpClient.Client.ReceiveTimeout = 3000;
 
-                    // Формируем SAMP Query пакет (тип 'i' - info)
+                    // Формируем правильный пакет запроса 'i' (Information)
+                    // Пакет состоит из: 'SAMP', 4 байта IP (необязательно), 2 байта порта, и буква запроса 'i'
                     byte[] request = new byte[11];
-                    Array.Copy(System.Text.Encoding.ASCII.GetBytes("SAMP"), 0, request, 0, 4);
-                    // IP адрес (мы не пишем, UseShellExecute true в UdpClient)
-                    // Порт
-                    request[8] = (byte)(port & 0xFF);
-                    request[9] = (byte)((port >> 8) & 0xFF);
-                    request[10] = (byte)'i'; // Тип запроса
+                    using (MemoryStream ms = new MemoryStream(request))
+                    {
+                        using (BinaryWriter bw = new BinaryWriter(ms))
+                        {
+                            bw.Write("SAMP".ToCharArray());
+                            // IP адрес сервера в байтах (можно оставить пустым или 0, если коннект уже есть)
+                            bw.Write(new byte[] { 0, 0, 0, 0 }); 
+                            bw.Write((ushort)port);
+                            bw.Write((byte)'i');
+                        }
+                    }
 
-                    // Отправляем запрос
                     udpClient.Send(request, request.Length);
 
-                    // Получаем ответ
                     IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, 0);
                     byte[] response = udpClient.Receive(ref remoteEP);
 
-                    // Если ответ корректный, разбираем его
-                    if (response.Length >= 22 && System.Text.Encoding.ASCII.GetString(response, 0, 4) == "SAMP")
+            // Структура ответа 'i':
+            // 0-3: 'SAMP'
+            // 10: Password (1 byte)
+            // 11-12: Players (2 bytes, Little Endian)
+            // 13-14: MaxPlayers (2 bytes, Little Endian)
+            // 15+: Название сервера и т.д.
+                    if (response.Length > 15)
                     {
-                        // Смещение 15: Количество игроков (short, 2 байта)
-                        int players = BitConverter.ToInt16(response, 15);
-                        // Смещение 17: Макс. количество игроков (short, 2 байта)
-                        int maxPlayers = BitConverter.ToInt16(response, 17);
+                        int players = BitConverter.ToUInt16(response, 11);
+                        int maxPlayers = BitConverter.ToUInt16(response, 13);
+                
                         return (true, players, maxPlayers);
                     }
                 }
             }
-            catch { /* Игнорируем ошибки сети */ }
+            catch { }
             return (false, 0, 0);
         }
 
