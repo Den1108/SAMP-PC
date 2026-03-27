@@ -24,7 +24,8 @@ namespace SAMPLauncher
         // ДАННЫЕ СЕРВЕРА
         private string serverIP = "188.127.241.8"; 
         private int serverPort = 1179;
-        private string distributionUrl = "http://твой-айпи-или-домен/distribution.json"; 
+        // Укажи здесь прямую ссылку на свой json
+        private string distributionUrl = "http://твой-айпи/distribution.json"; 
 
         private DispatcherTimer _queryTimer;
 
@@ -32,6 +33,12 @@ namespace SAMPLauncher
         {
             InitializeComponent();
             LoadSettings();
+
+            // Если путь не задан, используем папку SAMP рядом с лаунчером
+            if (string.IsNullOrEmpty(_gamePath))
+            {
+                _gamePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SAMP");
+            }
 
             UpdateServerInfo();
 
@@ -70,7 +77,6 @@ namespace SAMPLauncher
                 {
                     udpClient.Connect(ip, port);
                     udpClient.Client.ReceiveTimeout = 2500;
-
                     byte[] request = new byte[11];
                     using (MemoryStream ms = new MemoryStream(request))
                     {
@@ -82,40 +88,30 @@ namespace SAMPLauncher
                             bw.Write((byte)'i');
                         }
                     }
-
                     udpClient.Send(request, request.Length);
                     IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, 0);
                     byte[] response = udpClient.Receive(ref remoteEP);
-
                     if (response.Length >= 15)
                     {
                         int players = BitConverter.ToUInt16(response, 11);
                         int maxPlayers = BitConverter.ToUInt16(response, 13);
-
-                        // Исправление ошибки 256 (Big/Little Endian)
                         if (players >= 256 && players % 256 == 0) players /= 256;
                         if (maxPlayers >= 256 && maxPlayers % 256 == 0) maxPlayers /= 256;
-
                         return (true, players, maxPlayers);
                     }
                 }
-            }
-            catch { }
+            } catch { }
             return (false, 0, 0);
         }
 
         private async void Play_Click(object sender, RoutedEventArgs e)
         {
-            if (string.IsNullOrEmpty(_gamePath) || !Directory.Exists(_gamePath))
-            {
-                MessageBox.Show("Укажите путь к папке с игрой.");
-                SelectPath_Click(sender, e);
-                return;
-            }
+            // Автоматически создаем папку SAMP, если её нет
+            if (!Directory.Exists(_gamePath)) Directory.CreateDirectory(_gamePath);
 
             SaveSettings();
 
-            // Запускаем обновление перед игрой
+            // Запускаем обновление
             await RunUpdateProcess();
 
             string sampExe = Path.Combine(_gamePath, "samp.exe");
@@ -128,6 +124,10 @@ namespace SAMPLauncher
                     WorkingDirectory = _gamePath, 
                     UseShellExecute = true 
                 });
+            }
+            else
+            {
+                MessageBox.Show("Файл samp.exe не найден после обновления. Проверьте distribution.json", "Ошибка");
             }
         }
 
@@ -148,8 +148,9 @@ namespace SAMPLauncher
                     var toDownload = new List<CacheFile>();
                     foreach (var file in dist.Cache)
                     {
-                        // Адаптация путей из distribution.json (files\...) под ПК
-                        string localPath = Path.Combine(_gamePath, file.Name.Replace("files\\", ""));
+                        // Теперь скрипт Node.js пишет "SAMP\\...", убираем это для локального пути
+                        string localRelativePath = file.Name.Replace("SAMP\\", "").Replace("samp\\", "");
+                        string localPath = Path.Combine(_gamePath, localRelativePath);
                         
                         if (!File.Exists(localPath) || new FileInfo(localPath).Length != file.Bytes[0])
                         {
@@ -163,25 +164,30 @@ namespace SAMPLauncher
                         for (int i = 0; i < toDownload.Count; i++)
                         {
                             var file = toDownload[i];
-                            StatusText.Text = $"Загрузка: {file.Name}";
+                            string displayPath = file.Name.Replace("SAMP\\", "").Replace("samp\\", "");
+                            StatusText.Text = $"Загрузка: {displayPath}";
                             DownloadProgress.Value = (double)(i + 1) / toDownload.Count * 100;
 
                             string url = dist.CdnCache + file.Name.Replace("\\", "/");
                             byte[] data = await client.GetByteArrayAsync(url);
 
-                            string savePath = Path.Combine(_gamePath, file.Name.Replace("files\\", ""));
+                            string savePath = Path.Combine(_gamePath, displayPath);
                             Directory.CreateDirectory(Path.GetDirectoryName(savePath));
                             await File.WriteAllBytesAsync(savePath, data);
                         }
+                        StatusText.Text = "Обновление завершено!";
+                    }
+                    else
+                    {
+                        StatusText.Text = "Файлы проверены.";
+                        DownloadProgress.Value = 100;
                     }
                 }
-                StatusText.Text = "Обновлено.";
             }
             catch (Exception ex) { StatusText.Text = "Ошибка обновления."; }
             finally { DownloadProgress.IsIndeterminate = false; }
         }
 
-        // --- Остальные методы (Settings, Load, Mouse) остаются как в оригинале ---
         private void SelectPath_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog ofd = new OpenFileDialog { Filter = "samp.exe|samp.exe" };
@@ -197,9 +203,11 @@ namespace SAMPLauncher
 
         private void LoadSettings() {
             if (File.Exists(configPath)) {
-                var config = JsonSerializer.Deserialize<LauncherConfig>(File.ReadAllText(configPath));
-                NickNameBox.Text = config?.Nickname ?? "Jake_Toren";
-                _gamePath = config?.GamePath ?? "";
+                try {
+                    var config = JsonSerializer.Deserialize<LauncherConfig>(File.ReadAllText(configPath));
+                    NickNameBox.Text = config?.Nickname ?? "Jake_Toren";
+                    _gamePath = config?.GamePath ?? "";
+                } catch { }
             }
         }
     }
