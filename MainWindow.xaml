@@ -121,11 +121,13 @@
 
                     <Border Grid.Column="1" Background="#121417" CornerRadius="10" Height="50" Padding="15,0" VerticalAlignment="Center" Margin="0,0,20,0">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <Ellipse Width="8" Height="8" Fill="#32CD32" Margin="0,0,10,0"/>
-                            <TextBlock Text="Flyt RP | Кнопка" Foreground="White" FontSize="14" VerticalAlignment="Center"/>
-                            <TextBlock Text=" 120/1000" Foreground="#8A8F98" FontSize="14" VerticalAlignment="Center"/>
+                            <Ellipse x:Name="OnlineIndicator" Width="8" Height="8" Fill="Gray" Margin="0,0,10,0"/> 
+        
+                            <TextBlock Text="Flyt RP | Основной" Foreground="White" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,0"/>
+        
+                            <TextBlock x:Name="OnlineText" Text="? / ?" Foreground="#8A8F98" FontSize="14" VerticalAlignment="Center" FontWeight="Bold"/>
                         </StackPanel>
-                    </Border>
+                   </Border>
 
                     <Button Grid.Column="2" Content="ИГРАТЬ ›" Click="Play_Click" Width="200" Height="50" Background="#32CD32" Foreground="White" FontSize="18" FontWeight="Bold" Cursor="Hand" VerticalAlignment="Center">
                         <Button.Resources>
