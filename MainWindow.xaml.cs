@@ -78,19 +78,23 @@ namespace SAMPLauncher
                 using (UdpClient udpClient = new UdpClient())
                 {
                     udpClient.Connect(ip, port);
-                    udpClient.Client.ReceiveTimeout = 3000;
+                    udpClient.Client.ReceiveTimeout = 2500; // Ожидание ответа
 
-                    // Формируем правильный пакет запроса 'i' (Information)
-                    // Пакет состоит из: 'SAMP', 4 байта IP (необязательно), 2 байта порта, и буква запроса 'i'
+                    // Формируем пакет запроса 'i' (Information)
                     byte[] request = new byte[11];
                     using (MemoryStream ms = new MemoryStream(request))
                     {
                         using (BinaryWriter bw = new BinaryWriter(ms))
                         {
                             bw.Write("SAMP".ToCharArray());
-                            // IP адрес сервера в байтах (можно оставить пустым или 0, если коннект уже есть)
+                    
+                            // Разбиваем IP на байты (для запроса можно отправить 0.0.0.0)
                             bw.Write(new byte[] { 0, 0, 0, 0 }); 
+                    
+                            // Порт в формате Little Endian
                             bw.Write((ushort)port);
+                    
+                            // Тип запроса
                             bw.Write((byte)'i');
                         }
                     }
@@ -100,17 +104,22 @@ namespace SAMPLauncher
                     IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, 0);
                     byte[] response = udpClient.Receive(ref remoteEP);
 
-            // Структура ответа 'i':
-            // 0-3: 'SAMP'
-            // 10: Password (1 byte)
+            // Разбор ответа
+            // Структура SAMP 'i': 
+            // 0-3: 'SAMP', 4-9: IP/Port, 10: Password (byte)
             // 11-12: Players (2 bytes, Little Endian)
             // 13-14: MaxPlayers (2 bytes, Little Endian)
-            // 15+: Название сервера и т.д.
-                    if (response.Length > 15)
+                    if (response.Length >= 15)
                     {
+                        // Используем BitConverter.ToUInt16 напрямую 
+                        // Если снова будет 256, значит сервер шлет данные в Big Endian (редко, но бывает)
                         int players = BitConverter.ToUInt16(response, 11);
                         int maxPlayers = BitConverter.ToUInt16(response, 13);
-                
+
+                        // Защита от переворота байтов (если 1 пришел как 256)
+                        if (players >= 256 && players % 256 == 0) players /= 256;
+                        if (maxPlayers >= 256 && maxPlayers % 256 == 0) maxPlayers /= 256;
+
                         return (true, players, maxPlayers);
                     }
                 }
