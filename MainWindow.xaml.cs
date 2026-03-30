@@ -94,6 +94,7 @@ namespace SAMPLauncher
         {
             try
             {
+                // 1. Запись стандартных настроек SA-MP в sa-mp.cfg
                 string docPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
                 string sampDir = Path.Combine(docPath, "GTA San Andreas User Files", "SAMP");
                 string sampCfg = Path.Combine(sampDir, "sa-mp.cfg");
@@ -115,16 +116,21 @@ namespace SAMPLauncher
                 if (FpsLimitCheck.IsChecked == true && FpsLimitBox.SelectedItem is ComboBoxItem fpsItem)
                 {
                     var fpsStr = fpsItem.Content.ToString()!.Replace(" FPS", "").Trim();
-                    if (fpsStr == "Без ограничений") fps = 0;
+                    if (fpsStr == "Без ограничений") fps = 0; // В SA-MP 0 или 90 обычно снимают лимит
                     else int.TryParse(fpsStr, out fps);
+                }
+                else
+                {
+                    fps = 90; // Дефолтный лимит, если чекбокс выключен
                 }
 
                 int widescreen = WidescreenCheck.IsChecked == true ? 1 : 0;
 
+                // ИСПРАВЛЕНИЕ: Используем 'fpslimit' вместо 'fps'
                 string cfg =
                     $"pagesize 0\n" +
                     $"checkfiles 0\n" +
-                    $"fps {fps}\n" +
+                    $"fpslimit {fps}\n" +
                     $"multicore 1\n" +
                     $"directmode 0\n" +
                     $"audiomsgoff 1\n" +
@@ -134,14 +140,42 @@ namespace SAMPLauncher
                     $"inbrowsers 0\n" +
                     $"nonametagstatus 1\n" +
                     $"timestamp 0\n" +
-                    $"fontedge 0\n" +
-                    $"widescreen {widescreen}\n" +
-                    $"width {width}\n" +
-                    $"height {height}\n";
+                    $"fontedge 0\n"; 
 
                 File.WriteAllText(sampCfg, cfg);
+
+                // 2. Запись кастомных графических настроек (Разрешение, Widescreen) 
+                // Создаем launcher.ini в папке с игрой для чтения вашими ASI-плагинами
+                if (Directory.Exists(_gamePath))
+                {
+                    string launcherIniPath = Path.Combine(_gamePath, "launcher.ini");
+                    string iniContent = 
+                        $"[Settings]\n" +
+                        $"Width={width}\n" +
+                        $"Height={height}\n" +
+                        $"Widescreen={widescreen}\n" +
+                        $"FpsLimit={fps}\n";
+                    
+                    File.WriteAllText(launcherIniPath, iniContent);
+                }
+
+                // 3. Установка никнейма через Реестр Windows (самый надежный способ для SA-MP)
+                string nickname = NickNameBox.Text.Trim();
+                if (!string.IsNullOrEmpty(nickname))
+                {
+                    using (RegistryKey key = Registry.CurrentUser.CreateSubKey(@"Software\SAMP"))
+                    {
+                        if (key != null)
+                        {
+                            key.SetValue("PlayerName", nickname);
+                        }
+                    }
+                }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Ошибка при применении настроек: {ex.Message}");
+            }
         }
 
         private void ClearCache_Click(object sender, RoutedEventArgs e)
@@ -302,6 +336,8 @@ del ""%~f0""
             btn.IsEnabled = false;
 
             if (!Directory.Exists(_gamePath)) Directory.CreateDirectory(_gamePath);
+            
+            // Принудительно сохраняем и применяем перед запуском
             SaveSettings();
             ApplyGameSettings();
 
@@ -314,6 +350,7 @@ del ""%~f0""
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = sampExe,
+                    // Никнейм теперь берется из реестра, но можно оставить и -n для подстраховки
                     Arguments = $"{serverIP}:{serverPort} -n{NickNameBox.Text.Trim()}",
                     WorkingDirectory = _gamePath,
                     UseShellExecute = true
