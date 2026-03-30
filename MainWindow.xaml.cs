@@ -35,7 +35,7 @@ namespace SAMPLauncher
             LoadSettings();
 
             if (string.IsNullOrEmpty(_gamePath))
-                _gamePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SAMP");
+                _gamePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "files");
 
             UpdateServerInfo();
 
