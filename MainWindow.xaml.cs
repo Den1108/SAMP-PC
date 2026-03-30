@@ -34,6 +34,7 @@ namespace SAMPLauncher
             InitializeComponent();
             LoadSettings();
 
+            // Если путь не задан, создаем папку "files" в папке с лаунчером
             if (string.IsNullOrEmpty(_gamePath))
                 _gamePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "files");
 
@@ -180,6 +181,7 @@ del ""%~f0""
                 return;
             }
 
+            // Теперь запуск ищет samp.exe внутри скачанной структуры (в подпапке SAMP)
             string sampExe = Path.Combine(_gamePath, "SAMP", "samp.exe");
             if (File.Exists(sampExe))
             {
@@ -190,7 +192,7 @@ del ""%~f0""
                     UseShellExecute = true 
                 });
             }
-            else { MessageBox.Show("Файл samp.exe не найден!"); }
+            else { MessageBox.Show($"Файл samp.exe не найден по пути: {sampExe}"); }
 
             btn.IsEnabled = true;
         }
@@ -213,7 +215,12 @@ del ""%~f0""
                     foreach (var file in dist.Cache)
                     {
                         if (string.IsNullOrEmpty(file.Name)) continue;
-                        string cleanPath = file.Name.Replace("files\\", "").Replace("files/", "");
+                        
+                        // Удаляем префикс 'files\' (или 'files/'), чтобы получить чистый путь внутри папки игры
+                        string cleanPath = file.Name;
+                        if (cleanPath.StartsWith("files\\", StringComparison.OrdinalIgnoreCase)) cleanPath = cleanPath.Substring(6);
+                        else if (cleanPath.StartsWith("files/", StringComparison.OrdinalIgnoreCase)) cleanPath = cleanPath.Substring(6);
+
                         string localPath = Path.Combine(_gamePath, cleanPath);
                         long remoteSize = (file.Bytes != null && file.Bytes.Count > 0) ? file.Bytes[0] : 0;
 
@@ -227,18 +234,26 @@ del ""%~f0""
                         for (int i = 0; i < toDownload.Count; i++)
                         {
                             var file = toDownload[i];
-                            string cleanName = file.Name!.Replace("files\\", "").Replace("files/", "");
+                            
+                            // Повторяем очистку для сохранения
+                            string cleanName = file.Name!;
+                            if (cleanName.StartsWith("files\\", StringComparison.OrdinalIgnoreCase)) cleanName = cleanName.Substring(6);
+                            else if (cleanName.StartsWith("files/", StringComparison.OrdinalIgnoreCase)) cleanName = cleanName.Substring(6);
+
                             StatusText.Text = $"Загрузка: {Path.GetFileName(cleanName)}";
                             DownloadProgress.Value = (double)(i + 1) / toDownload.Count * 100;
 
                             string baseCdn = dist.CdnCache?.TrimEnd('/') ?? "";
-                            string filePath = file.Name!.Replace("\\", "/").TrimStart('/');
-                            string url = $"{baseCdn}/{filePath}";
+                            // Для URL используем оригинальное имя из JSON (с 'files/'), заменяя слэши
+                            string urlPath = file.Name!.Replace("\\", "/");
+                            string url = $"{baseCdn}/{urlPath}";
 
                             byte[] data = await client.GetByteArrayAsync(url);
                             string savePath = Path.Combine(_gamePath, cleanName);
+                            
                             string? dir = Path.GetDirectoryName(savePath);
                             if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+                            
                             await File.WriteAllBytesAsync(savePath, data);
                         }
                         StatusText.Text = "Обновлено!";
@@ -250,7 +265,7 @@ del ""%~f0""
             catch (Exception ex) 
             { 
                 StatusText.Text = "Ошибка обновления"; 
-                MessageBox.Show($"Ошибка: {ex.Message}", "Flyt RP");
+                MessageBox.Show($"Ошибка скачивания: {ex.Message}", "Flyt RP");
                 return false;
             }
             finally { DownloadProgress.IsIndeterminate = false; }
