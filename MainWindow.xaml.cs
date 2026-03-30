@@ -18,14 +18,14 @@ namespace SAMPLauncher
 {
     public partial class MainWindow : Window
     {
+        // ВЕРСИЯ ЛАУНЧЕРА
+        private const string CurrentLauncherVersion = "1.0.0"; 
+
         private string configPath = "config.json";
         private string _gamePath = "";
         
-        // ДАННЫЕ СЕРВЕРА
         private string serverIP = "188.127.241.8"; 
         private int serverPort = 1179;
-        
-        // ХОСТИНГ
         private string distributionUrl = "http://87.106.105.24:12867/distribution.json"; 
 
         private DispatcherTimer _queryTimer;
@@ -35,7 +35,6 @@ namespace SAMPLauncher
             InitializeComponent();
             LoadSettings();
 
-            // Если путь пустой, по умолчанию папка SAMP в директории лаунчера
             if (string.IsNullOrEmpty(_gamePath))
             {
                 _gamePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SAMP");
@@ -47,6 +46,71 @@ namespace SAMPLauncher
             _queryTimer.Interval = TimeSpan.FromSeconds(30);
             _queryTimer.Tick += (s, e) => UpdateServerInfo();
             _queryTimer.Start();
+
+            // Запускаем проверку обновления самого лаунчера при старте
+            _ = CheckLauncherUpdate();
+        }
+
+        private async Task CheckLauncherUpdate()
+        {
+            try
+            {
+                using (HttpClient client = new HttpClient())
+                {
+                    string json = await client.GetStringAsync(distributionUrl);
+                    var dist = JsonSerializer.Deserialize<Distribution>(json);
+                    
+                    if (dist != null && !string.IsNullOrEmpty(dist.LauncherVersion))
+                    {
+                        if (dist.LauncherVersion != CurrentLauncherVersion)
+                        {
+                            var result = MessageBox.Show($"Доступна новая версия Flyt RP ({dist.LauncherVersion}). Обновить?", 
+                                "Обновление лаунчера", MessageBoxButton.YesNo, MessageBoxImage.Information);
+                            
+                            if (result == MessageBoxResult.Yes && !string.IsNullOrEmpty(dist.CdnLauncher))
+                            {
+                                await UpdateSelf(dist.CdnLauncher);
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+        }
+
+        private async Task UpdateSelf(string url)
+        {
+            try
+            {
+                string currentExe = Process.GetCurrentProcess().MainModule!.FileName!;
+                string newExe = currentExe + "_new.exe";
+                
+                StatusText.Text = "Обновление лаунчера...";
+                
+                using (HttpClient client = new HttpClient())
+                {
+                    byte[] data = await client.GetByteArrayAsync(url);
+                    await File.WriteAllBytesAsync(newExe, data);
+                }
+
+                string batchFile = Path.Combine(Path.GetTempPath(), "update_flyt.bat");
+                string batContent = $@"
+@echo off
+timeout /t 2 /nobreak > nul
+del ""{currentExe}""
+move ""{newExe}"" ""{currentExe}""
+start """" ""{currentExe}""
+del ""%~f0""
+";
+                await File.WriteAllTextAsync(batchFile, batContent);
+
+                Process.Start(new ProcessStartInfo { FileName = batchFile, CreateNoWindow = true, UseShellExecute = false });
+                Application.Current.Shutdown();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Ошибка при самообновлении: " + ex.Message);
+            }
         }
 
         private void UpdateServerInfo()
@@ -111,23 +175,14 @@ namespace SAMPLauncher
             btn.IsEnabled = false;
 
             if (!Directory.Exists(_gamePath)) Directory.CreateDirectory(_gamePath);
-
             SaveSettings();
 
-            // Запуск процесса обновления
             bool updateSuccess = await RunUpdateProcess();
+            if (!updateSuccess) { btn.IsEnabled = true; return; }
 
-            if (!updateSuccess)
-            {
-                // Если RunUpdateProcess вернул false, кнопка разблокируется, запуск прерывается
-                btn.IsEnabled = true;
-                return;
-            }
-
-            // Проверка режима тестирования
             if (TestModeCheck.IsChecked == true)
             {
-                MessageBox.Show("Файлы проверены. Режим теста активен: запуск игры отменен.", "Flyt RP Тест");
+                MessageBox.Show("Режим теста: запуск отменен.", "Flyt RP");
                 btn.IsEnabled = true;
                 return;
             }
@@ -135,18 +190,14 @@ namespace SAMPLauncher
             string sampExe = Path.Combine(_gamePath, "samp.exe");
             if (File.Exists(sampExe))
             {
-                string arguments = $"{serverIP}:{serverPort} -n{NickNameBox.Text.Trim()}";
                 Process.Start(new ProcessStartInfo { 
                     FileName = sampExe, 
-                    Arguments = arguments, 
+                    Arguments = $"{serverIP}:{serverPort} -n{NickNameBox.Text.Trim()}", 
                     WorkingDirectory = _gamePath, 
                     UseShellExecute = true 
                 });
             }
-            else
-            {
-                MessageBox.Show($"Файл samp.exe не найден!\nПуть: {sampExe}", "Ошибка запуска");
-            }
+            else { MessageBox.Show("Файл samp.exe не найден!"); }
 
             btn.IsEnabled = true;
         }
@@ -155,47 +206,26 @@ namespace SAMPLauncher
         {
             try
             {
-                StatusText.Text = "Синхронизация с сервером...";
+                StatusText.Text = "Синхронизация...";
                 DownloadProgress.IsIndeterminate = true;
 
                 using (HttpClient client = new HttpClient())
                 {
-                    // Загружаем JSON
                     string json = await client.GetStringAsync(distributionUrl);
                     var dist = JsonSerializer.Deserialize<Distribution>(json);
 
-                    if (dist?.Cache == null) 
-                        throw new Exception("Файл distribution.json пуст или имеет неверную структуру.");
+                    if (dist?.Cache == null) throw new Exception("Ошибка загрузки списка файлов.");
 
                     var toDownload = new List<CacheFile>();
-
                     foreach (var file in dist.Cache)
                     {
                         if (string.IsNullOrEmpty(file.Name)) continue;
-
-                        // Удаляем "SAMP\" из начала пути, чтобы корректно искать файл в выбранной папке
-                        string cleanPath = file.Name;
-                        if (cleanPath.StartsWith("SAMP\\", StringComparison.OrdinalIgnoreCase))
-                            cleanPath = cleanPath.Substring(5);
-                        else if (cleanPath.StartsWith("SAMP/", StringComparison.OrdinalIgnoreCase))
-                            cleanPath = cleanPath.Substring(5);
-
-                        string localFullPath = Path.Combine(_gamePath, cleanPath);
+                        string cleanPath = file.Name.Replace("SAMP\\", "").Replace("SAMP/", "");
+                        string localPath = Path.Combine(_gamePath, cleanPath);
                         long remoteSize = (file.Bytes != null && file.Bytes.Count > 0) ? file.Bytes[0] : 0;
 
-                        // Сравниваем только реальный размер (не "на диске")
-                        if (!File.Exists(localFullPath))
-                        {
+                        if (!File.Exists(localPath) || new FileInfo(localPath).Length != remoteSize)
                             toDownload.Add(file);
-                        }
-                        else
-                        {
-                            long localSize = new FileInfo(localFullPath).Length;
-                            if (localSize != remoteSize)
-                            {
-                                toDownload.Add(file);
-                            }
-                        }
                     }
 
                     if (toDownload.Count > 0)
@@ -204,86 +234,50 @@ namespace SAMPLauncher
                         for (int i = 0; i < toDownload.Count; i++)
                         {
                             var file = toDownload[i];
-                            
-                            // Формируем чистый путь для сохранения (без SAMP\)
                             string cleanName = file.Name!.Replace("SAMP\\", "").Replace("SAMP/", "");
-                            
                             StatusText.Text = $"Загрузка: {Path.GetFileName(cleanName)}";
                             DownloadProgress.Value = (double)(i + 1) / toDownload.Count * 100;
 
-                            // Собираем URL для скачивания
                             string baseCdn = dist.CdnCache?.TrimEnd('/') ?? "";
                             string url = $"{baseCdn}/{file.Name.Replace("\\", "/")}";
 
-                            try 
-                            {
-                                byte[] data = await client.GetByteArrayAsync(url);
-                                string savePath = Path.Combine(_gamePath, cleanName);
-                                
-                                string? dir = Path.GetDirectoryName(savePath);
-                                if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-                                
-                                await File.WriteAllBytesAsync(savePath, data);
-                            }
-                            catch (Exception ex)
-                            {
-                                throw new Exception($"Ошибка при скачивании файла {file.Name}:\n{ex.Message}");
-                            }
+                            byte[] data = await client.GetByteArrayAsync(url);
+                            string savePath = Path.Combine(_gamePath, cleanName);
+                            string? dir = Path.GetDirectoryName(savePath);
+                            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+                            await File.WriteAllBytesAsync(savePath, data);
                         }
-                        StatusText.Text = "Обновление завершено!";
+                        StatusText.Text = "Обновлено!";
                     }
-                    else
-                    {
-                        StatusText.Text = "Версия игры актуальна.";
-                        DownloadProgress.Value = 100;
-                    }
+                    else { StatusText.Text = "Версия актуальна"; DownloadProgress.Value = 100; }
                 }
                 return true;
             }
             catch (Exception ex) 
             { 
                 StatusText.Text = "Ошибка обновления"; 
-                MessageBox.Show($"Детали ошибки:\n{ex.Message}\n\nВозможно, сервер недоступен или файлы отсутствуют на хостинге.", "Сбой обновления");
+                MessageBox.Show($"Ошибка: {ex.Message}", "Flyt RP");
                 return false;
             }
-            finally 
-            { 
-                DownloadProgress.IsIndeterminate = false; 
-            }
+            finally { DownloadProgress.IsIndeterminate = false; }
         }
 
         private void SelectPath_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog ofd = new OpenFileDialog { Filter = "samp.exe|samp.exe" };
-            if (ofd.ShowDialog() == true) 
-            { 
-                _gamePath = Path.GetDirectoryName(ofd.FileName) ?? ""; 
-                SaveSettings(); 
-            }
+            if (ofd.ShowDialog() == true) { _gamePath = Path.GetDirectoryName(ofd.FileName) ?? ""; SaveSettings(); }
         }
 
-        private void Header_MouseDown(object sender, MouseButtonEventArgs e) 
-        { 
-            if (e.LeftButton == MouseButtonState.Pressed) DragMove(); 
-        }
-
+        private void Header_MouseDown(object sender, MouseButtonEventArgs e) { if (e.LeftButton == MouseButtonState.Pressed) DragMove(); }
         private void Close_Click(object sender, RoutedEventArgs e) => Application.Current.Shutdown();
 
-        private void SaveSettings() 
-        {
-            try 
-            { 
-                var config = new LauncherConfig { Nickname = NickNameBox.Text, GamePath = _gamePath };
-                File.WriteAllText(configPath, JsonSerializer.Serialize(config)); 
-            } catch { }
+        private void SaveSettings() {
+            try { File.WriteAllText(configPath, JsonSerializer.Serialize(new LauncherConfig { Nickname = NickNameBox.Text, GamePath = _gamePath })); } catch { }
         }
 
-        private void LoadSettings() 
-        {
-            if (File.Exists(configPath)) 
-            {
-                try 
-                {
+        private void LoadSettings() {
+            if (File.Exists(configPath)) {
+                try {
                     var config = JsonSerializer.Deserialize<LauncherConfig>(File.ReadAllText(configPath));
                     NickNameBox.Text = config?.Nickname ?? "Jake_Toren";
                     _gamePath = config?.GamePath ?? "";
@@ -292,21 +286,20 @@ namespace SAMPLauncher
         }
     }
 
-    public class Distribution 
-    {
+    public class Distribution {
         [JsonPropertyName("cache")] public List<CacheFile>? Cache { get; set; }
         [JsonPropertyName("cdnCache")] public string? CdnCache { get; set; }
+        [JsonPropertyName("launcherVersion")] public string? LauncherVersion { get; set; }
+        [JsonPropertyName("cdnLauncher")] public string? CdnLauncher { get; set; }
     }
 
-    public class CacheFile 
-    {
+    public class CacheFile {
         [JsonPropertyName("id")] public int Id { get; set; }
         [JsonPropertyName("name")] public string? Name { get; set; }
         [JsonPropertyName("bytes")] public List<long>? Bytes { get; set; }
     }
 
-    public class LauncherConfig 
-    {
+    public class LauncherConfig {
         public string? Nickname { get; set; }
         public string? GamePath { get; set; }
     }
