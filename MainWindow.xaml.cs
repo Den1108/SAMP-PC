@@ -180,13 +180,13 @@ del ""%~f0""
                 return;
             }
 
-            string sampExe = Path.Combine(_gamePath, "samp.exe");
+            string sampExe = Path.Combine(_gamePath, "SAMP", "samp.exe");
             if (File.Exists(sampExe))
             {
                 Process.Start(new ProcessStartInfo { 
                     FileName = sampExe, 
                     Arguments = $"{serverIP}:{serverPort} -n{NickNameBox.Text.Trim()}", 
-                    WorkingDirectory = _gamePath, 
+                    WorkingDirectory = Path.Combine(_gamePath, "SAMP"), 
                     UseShellExecute = true 
                 });
             }
@@ -213,23 +213,12 @@ del ""%~f0""
                     foreach (var file in dist.Cache)
                     {
                         if (string.IsNullOrEmpty(file.Name)) continue;
-                        string cleanPath = file.Name.Replace("SAMP\\", "").Replace("SAMP/", "");
+                        string cleanPath = file.Name.Replace("files\\", "").Replace("files/", "");
                         string localPath = Path.Combine(_gamePath, cleanPath);
                         long remoteSize = (file.Bytes != null && file.Bytes.Count > 0) ? file.Bytes[0] : 0;
 
                         if (!File.Exists(localPath) || new FileInfo(localPath).Length != remoteSize)
-                        {
-                            // ОТЛАДКА: показываем первый несовпадающий файл
-                            MessageBox.Show(
-                                $"НЕ СОВПАДАЕТ:\n" +
-                                $"Файл: {localPath}\n" +
-                                $"Существует: {File.Exists(localPath)}\n" +
-                                $"Размер локальный: {(File.Exists(localPath) ? new FileInfo(localPath).Length : 0)}\n" +
-                                $"Размер в манифесте: {remoteSize}",
-                                "Отладка");
-                            break; // убрать break после того как найдёшь проблему
                             toDownload.Add(file);
-                        }
                     }
 
                     if (toDownload.Count > 0)
@@ -238,7 +227,7 @@ del ""%~f0""
                         for (int i = 0; i < toDownload.Count; i++)
                         {
                             var file = toDownload[i];
-                            string cleanName = file.Name!.Replace("SAMP\\", "").Replace("SAMP/", "");
+                            string cleanName = file.Name!.Replace("files\\", "").Replace("files/", "");
                             StatusText.Text = $"Загрузка: {Path.GetFileName(cleanName)}";
                             DownloadProgress.Value = (double)(i + 1) / toDownload.Count * 100;
 
