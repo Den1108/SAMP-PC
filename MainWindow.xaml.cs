@@ -224,9 +224,6 @@ del ""%~f0""
                         string localPath = Path.Combine(_gamePath, cleanPath);
                         long remoteSize = (file.Bytes != null && file.Bytes.Count > 0) ? file.Bytes[0] : 0;
 
-                        MessageBox.Show($"Ищу: {localPath}\nСуществует: {File.Exists(localPath)}\nРазмер локальный: {(File.Exists(localPath) ? new FileInfo(localPath).Length : 0)}\nРазмер в манифесте: {remoteSize}");
-break;
-
                         if (!File.Exists(localPath) || new FileInfo(localPath).Length != remoteSize)
                             toDownload.Add(file);
                     }
