@@ -24,12 +24,44 @@
                 </Style>
             </Style.Resources>
         </Style>
-        
-        <Style x:Key="NewsCard" TargetType="Border">
-            <Setter Property="Background" Value="#1E2124"/>
-            <Setter Property="CornerRadius" Value="15"/>
-            <Setter Property="Margin" Value="0,0,20,0"/>
-            <Setter Property="Width" Value="300"/>
+
+        <Style x:Key="NavText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#8A8F98"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Margin" Value="0,0,30,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="SettingsLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#8A8F98"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+        </Style>
+
+        <Style x:Key="SettingsCombo" TargetType="ComboBox">
+            <Setter Property="Background" Value="#121417"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+
+        <Style x:Key="ActionButton" TargetType="Button">
+            <Setter Property="Background" Value="#2A2D34"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Height" Value="44"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Resources>
+                <Style TargetType="Border">
+                    <Setter Property="CornerRadius" Value="10"/>
+                </Style>
+            </Style.Resources>
         </Style>
     </Window.Resources>
 
@@ -41,6 +73,7 @@
                 <RowDefinition Height="120"/>
             </Grid.RowDefinitions>
 
+            <!-- HEADER -->
             <Grid Grid.Row="0" Margin="30,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -51,33 +84,102 @@
                 <TextBlock Text="FLYT RP" Foreground="#32CD32" FontSize="28" FontWeight="Black" VerticalAlignment="Center" Grid.Column="0" FontStyle="Italic"/>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="40,0,0,0" VerticalAlignment="Center">
-                    <TextBlock Text="ГЛАВНАЯ" Foreground="White" FontSize="14" FontWeight="Bold" Margin="0,0,30,0" Cursor="Hand"/>
-                    <TextBlock Text="НОВОСТИ" Foreground="#8A8F98" FontSize="14" FontWeight="Bold" Margin="0,0,30,0" Cursor="Hand"/>
-                    <TextBlock Text="ФОРУМ" Foreground="#8A8F98" FontSize="14" FontWeight="Bold" Cursor="Hand"/>
+                    <TextBlock x:Name="NavHome" Text="ГЛАВНАЯ" Foreground="White" FontSize="14" FontWeight="Bold" Margin="0,0,30,0" Cursor="Hand" MouseDown="NavHome_Click"/>
+                    <TextBlock x:Name="NavSettings" Style="{StaticResource NavText}" Text="НАСТРОЙКИ" MouseDown="NavSettings_Click"/>
+                    <TextBlock Style="{StaticResource NavText}" Text="НОВОСТИ" Margin="0,0,30,0"/>
+                    <TextBlock Style="{StaticResource NavText}" Text="ФОРУМ" Margin="0"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button Style="{StaticResource SocialButton}" Content="VK"/>
                     <Button Style="{StaticResource SocialButton}" Content="DS"/>
                     <Button Style="{StaticResource SocialButton}" Content="TG"/>
-                    
                     <Button Width="40" Height="40" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Close_Click" Margin="20,0,0,0">
                         <TextBlock Text="✕" Foreground="#8A8F98" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Button>
                 </StackPanel>
             </Grid>
 
-            <Border Grid.Row="1" Margin="30,10,30,20" CornerRadius="20" Background="#1A1D21" ClipToBounds="True">
-                <Grid>
-                    <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="40,40">
-                        <TextBlock Text="ОБНОВЛЕНИЕ" Foreground="#32CD32" FontSize="14" FontWeight="Bold" Margin="0,0,0,10"/>
-                        <TextBlock Text="ЛЕТНИЙ СЕЗОН" Foreground="White" FontSize="48" FontWeight="Black" Margin="0,0,0,10"/>
-                        <TextBlock Text="Новые автомобили, работы и измененная карта уже на сервере!" Foreground="#8A8F98" FontSize="16" TextWrapping="Wrap" Width="400"/>
-                    </StackPanel>
-                </Grid>
-            </Border>
+            <!-- CONTENT AREA -->
+            <Grid Grid.Row="1">
 
-            <Grid Grid.Row="2" Background="#16181C" Margin="0" >
+                <!-- ГЛАВНАЯ -->
+                <Border x:Name="PageHome" Margin="30,10,30,20" CornerRadius="20" Background="#1A1D21" ClipToBounds="True">
+                    <Grid>
+                        <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="40,40">
+                            <TextBlock Text="ОБНОВЛЕНИЕ" Foreground="#32CD32" FontSize="14" FontWeight="Bold" Margin="0,0,0,10"/>
+                            <TextBlock Text="ЛЕТНИЙ СЕЗОН" Foreground="White" FontSize="48" FontWeight="Black" Margin="0,0,0,10"/>
+                            <TextBlock Text="Новые автомобили, работы и измененная карта уже на сервере!" Foreground="#8A8F98" FontSize="16" TextWrapping="Wrap" Width="400"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- НАСТРОЙКИ -->
+                <Border x:Name="PageSettings" Margin="30,10,30,20" CornerRadius="20" Background="#1A1D21" Visibility="Collapsed">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="40,30">
+                        <StackPanel>
+                            <TextBlock Text="НАСТРОЙКИ ИГРЫ" Foreground="White" FontSize="22" FontWeight="Black" Margin="0,0,0,30"/>
+
+                            <!-- Разрешение -->
+                            <TextBlock Text="Разрешение экрана" Style="{StaticResource SettingsLabel}"/>
+                            <ComboBox x:Name="ResolutionBox" Style="{StaticResource SettingsCombo}" Width="300" HorizontalAlignment="Left" Margin="0,0,0,20">
+                                <ComboBoxItem Content="800 x 600"/>
+                                <ComboBoxItem Content="1024 x 768"/>
+                                <ComboBoxItem Content="1280 x 720"/>
+                                <ComboBoxItem Content="1280 x 1024"/>
+                                <ComboBoxItem Content="1600 x 900"/>
+                                <ComboBoxItem Content="1920 x 1080" IsSelected="True"/>
+                                <ComboBoxItem Content="2560 x 1440"/>
+                            </ComboBox>
+
+                            <!-- FPS Limit -->
+                            <TextBlock Text="Ограничитель кадров (FPS Limit)" Style="{StaticResource SettingsLabel}"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,20" VerticalAlignment="Center">
+                                <CheckBox x:Name="FpsLimitCheck" Foreground="White" FontSize="14" VerticalAlignment="Center" Cursor="Hand" Margin="0,0,15,0" Checked="FpsLimit_Changed" Unchecked="FpsLimit_Changed"/>
+                                <ComboBox x:Name="FpsLimitBox" Style="{StaticResource SettingsCombo}" Width="150" IsEnabled="False">
+                                    <ComboBoxItem Content="30 FPS"/>
+                                    <ComboBoxItem Content="60 FPS" IsSelected="True"/>
+                                    <ComboBoxItem Content="100 FPS"/>
+                                    <ComboBoxItem Content="120 FPS"/>
+                                    <ComboBoxItem Content="Без ограничений"/>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <!-- Widescreen -->
+                            <TextBlock Text="Широкий экран (Widescreen Fix)" Style="{StaticResource SettingsLabel}"/>
+                            <CheckBox x:Name="WidescreenCheck" Content="Включить Widescreen Fix" Foreground="White" FontSize="14" Cursor="Hand" Margin="0,0,0,25"/>
+
+                            <Separator Background="#2A2D34" Margin="0,0,0,25"/>
+
+                            <!-- Путь к игре -->
+                            <TextBlock Text="Папка с игрой" Style="{StaticResource SettingsLabel}"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,25">
+                                <TextBlock x:Name="GamePathText" Text="" Foreground="#8A8F98" FontSize="13" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                                <Button Style="{StaticResource ActionButton}" Content="Изменить путь" Width="150" Click="SelectPath_Click"/>
+                            </StackPanel>
+
+                            <Separator Background="#2A2D34" Margin="0,0,0,25"/>
+
+                            <!-- Очистка кэша -->
+                            <TextBlock Text="Обслуживание" Foreground="White" FontSize="16" FontWeight="Bold" Margin="0,0,0,15"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <Button Style="{StaticResource ActionButton}" Content="🗑 Очистить кэш" Width="180" Click="ClearCache_Click" Margin="0,0,15,0"/>
+                                <Button Style="{StaticResource ActionButton}" Content="🔧 Починить игру" Width="180" Click="RepairGame_Click" Background="#1E3A1E">
+                                    <Button.Effect>
+                                        <DropShadowEffect BlurRadius="10" Color="#32CD32" Opacity="0.2" ShadowDepth="0"/>
+                                    </Button.Effect>
+                                </Button>
+                            </StackPanel>
+                            <TextBlock Text="«Починить игру» проверит все файлы и скачает отсутствующие или повреждённые." Foreground="#555A63" FontSize="12" Margin="0,6,0,0" TextWrapping="Wrap" Width="400"/>
+
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+
+            </Grid>
+
+            <!-- BOTTOM BAR -->
+            <Grid Grid.Row="2" Background="#16181C">
                 <Grid Margin="30,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="2*"/>
@@ -94,15 +196,6 @@
                                     </Style>
                                 </TextBox.Resources>
                             </TextBox>
-                            
-                            <Button Width="40" Height="40" Background="#2A2D34" BorderThickness="0" Margin="10,0,0,0" Cursor="Hand" Click="SelectPath_Click" ToolTip="Выбрать папку с игрой">
-                                <TextBlock Text="⚙" Foreground="White" FontSize="20" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                                <Button.Resources>
-                                    <Style TargetType="Border">
-                                        <Setter Property="CornerRadius" Value="10"/>
-                                    </Style>
-                                </Button.Resources>
-                            </Button>
                         </StackPanel>
                         
                         <StackPanel Orientation="Horizontal">
@@ -117,21 +210,18 @@
                             <TextBlock Text="Flyt RP | Основной" Foreground="White" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,0"/>
                             <TextBlock x:Name="OnlineText" Text="? / ?" Foreground="#8A8F98" FontSize="14" VerticalAlignment="Center" FontWeight="Bold"/>
                         </StackPanel>
-                   </Border>
+                    </Border>
 
-                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                        <CheckBox x:Name="TestModeCheck" Content="Режим проверки (без запуска)" Foreground="#8A8F98" FontSize="12" Margin="0,0,0,5" HorizontalAlignment="Center" Cursor="Hand"/>
-                        <Button Content="ИГРАТЬ ›" Click="Play_Click" Width="200" Height="50" Background="#32CD32" Foreground="White" FontSize="18" FontWeight="Bold" Cursor="Hand">
-                            <Button.Resources>
-                                <Style TargetType="Border">
-                                    <Setter Property="CornerRadius" Value="10"/>
-                                </Style>
-                            </Button.Resources>
-                            <Button.Effect>
-                                <DropShadowEffect BlurRadius="15" Color="#32CD32" Opacity="0.4" ShadowDepth="0"/>
-                            </Button.Effect>
-                        </Button>
-                    </StackPanel>
+                    <Button Grid.Column="2" Content="ИГРАТЬ ›" Click="Play_Click" Width="200" Height="50" Background="#32CD32" Foreground="White" FontSize="18" FontWeight="Bold" Cursor="Hand" VerticalAlignment="Center">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="10"/>
+                            </Style>
+                        </Button.Resources>
+                        <Button.Effect>
+                            <DropShadowEffect BlurRadius="15" Color="#32CD32" Opacity="0.4" ShadowDepth="0"/>
+                        </Button.Effect>
+                    </Button>
                 </Grid>
             </Grid>
         </Grid>
