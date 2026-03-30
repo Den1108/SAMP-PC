@@ -9,6 +9,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -28,6 +29,7 @@ namespace SAMPLauncher
         private string distributionUrl = "http://87.106.105.24:12867/distribution.json";
 
         private DispatcherTimer _queryTimer;
+        private bool _settingsLoaded = false;
 
         public MainWindow()
         {
@@ -38,6 +40,15 @@ namespace SAMPLauncher
                 _gamePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "files");
 
             GamePathText.Text = _gamePath;
+            _settingsLoaded = true;
+
+            NickNameBox.TextChanged += (s, e) => AutoSave();
+            ResolutionBox.SelectionChanged += (s, e) => AutoSave();
+            FpsLimitCheck.Checked += (s, e) => AutoSave();
+            FpsLimitCheck.Unchecked += (s, e) => AutoSave();
+            FpsLimitBox.SelectionChanged += (s, e) => AutoSave();
+            WidescreenCheck.Checked += (s, e) => AutoSave();
+            WidescreenCheck.Unchecked += (s, e) => AutoSave();
 
             UpdateServerInfo();
 
@@ -49,7 +60,12 @@ namespace SAMPLauncher
             _ = CheckLauncherUpdate();
         }
 
-        // ===================== НАВИГАЦИЯ =====================
+        private void AutoSave()
+        {
+            if (!_settingsLoaded) return;
+            SaveSettings();
+            ApplyGameSettings();
+        }
 
         private void NavHome_Click(object sender, MouseButtonEventArgs e)
         {
@@ -68,12 +84,64 @@ namespace SAMPLauncher
             GamePathText.Text = _gamePath;
         }
 
-        // ===================== НАСТРОЙКИ =====================
-
         private void FpsLimit_Changed(object sender, RoutedEventArgs e)
         {
             if (FpsLimitBox != null)
                 FpsLimitBox.IsEnabled = FpsLimitCheck.IsChecked == true;
+        }
+
+        private void ApplyGameSettings()
+        {
+            try
+            {
+                string docPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                string sampDir = Path.Combine(docPath, "GTA San Andreas User Files", "SAMP");
+                string sampCfg = Path.Combine(sampDir, "sa-mp.cfg");
+
+                if (!Directory.Exists(sampDir)) Directory.CreateDirectory(sampDir);
+
+                int width = 1920, height = 1080;
+                if (ResolutionBox.SelectedItem is ComboBoxItem resItem)
+                {
+                    var parts = resItem.Content.ToString()!.Replace(" ", "").Split('x');
+                    if (parts.Length == 2)
+                    {
+                        int.TryParse(parts[0], out width);
+                        int.TryParse(parts[1], out height);
+                    }
+                }
+
+                int fps = 60;
+                if (FpsLimitCheck.IsChecked == true && FpsLimitBox.SelectedItem is ComboBoxItem fpsItem)
+                {
+                    var fpsStr = fpsItem.Content.ToString()!.Replace(" FPS", "").Trim();
+                    if (fpsStr == "Без ограничений") fps = 0;
+                    else int.TryParse(fpsStr, out fps);
+                }
+
+                int widescreen = WidescreenCheck.IsChecked == true ? 1 : 0;
+
+                string cfg =
+                    $"pagesize 0\n" +
+                    $"checkfiles 0\n" +
+                    $"fps {fps}\n" +
+                    $"multicore 1\n" +
+                    $"directmode 0\n" +
+                    $"audiomsgoff 1\n" +
+                    $"audioproxyoff 0\n" +
+                    $"imeoff 0\n" +
+                    $"novattention 0\n" +
+                    $"inbrowsers 0\n" +
+                    $"nonametagstatus 1\n" +
+                    $"timestamp 0\n" +
+                    $"fontedge 0\n" +
+                    $"widescreen {widescreen}\n" +
+                    $"width {width}\n" +
+                    $"height {height}\n";
+
+                File.WriteAllText(sampCfg, cfg);
+            }
+            catch { }
         }
 
         private void ClearCache_Click(object sender, RoutedEventArgs e)
@@ -110,8 +178,6 @@ namespace SAMPLauncher
             if (success)
                 MessageBox.Show("Проверка завершена. Все файлы в порядке!", "Починить игру");
         }
-
-        // ===================== ОБНОВЛЕНИЕ ЛАУНЧЕРА =====================
 
         private async Task CheckLauncherUpdate()
         {
@@ -173,8 +239,6 @@ del ""%~f0""
             }
         }
 
-        // ===================== СЕРВЕР =====================
-
         private void UpdateServerInfo()
         {
             OnlineIndicator.Fill = Brushes.Orange;
@@ -232,15 +296,14 @@ del ""%~f0""
             return (false, 0, 0);
         }
 
-        // ===================== ИГРА =====================
-
         private async void Play_Click(object sender, RoutedEventArgs e)
         {
-            var btn = (System.Windows.Controls.Button)sender;
+            var btn = (Button)sender;
             btn.IsEnabled = false;
 
             if (!Directory.Exists(_gamePath)) Directory.CreateDirectory(_gamePath);
             SaveSettings();
+            ApplyGameSettings();
 
             bool updateSuccess = await RunUpdateProcess();
             if (!updateSuccess) { btn.IsEnabled = true; return; }
@@ -248,8 +311,6 @@ del ""%~f0""
             string sampExe = Path.Combine(_gamePath, "samp.exe");
             if (File.Exists(sampExe))
             {
-                ApplyGameSettings();
-
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = sampExe,
@@ -262,38 +323,6 @@ del ""%~f0""
 
             btn.IsEnabled = true;
         }
-
-        private void ApplyGameSettings()
-        {
-            try
-            {
-                // Применяем разрешение и настройки через gta_sa.set
-                string setFile = Path.Combine(_gamePath, "gta_sa.set");
-                if (!File.Exists(setFile)) return;
-
-                string content = File.ReadAllText(setFile);
-
-                // Разрешение
-                if (ResolutionBox.SelectedItem is System.Windows.Controls.ComboBoxItem resItem)
-                {
-                    var parts = resItem.Content.ToString()!.Replace(" ", "").Split('x');
-                    if (parts.Length == 2 && int.TryParse(parts[0], out int w) && int.TryParse(parts[1], out int h))
-                    {
-                        content = System.Text.RegularExpressions.Regex.Replace(content, @"width \d+", $"width {w}");
-                        content = System.Text.RegularExpressions.Regex.Replace(content, @"height \d+", $"height {h}");
-                    }
-                }
-
-                // Widescreen
-                string wideValue = WidescreenCheck.IsChecked == true ? "1" : "0";
-                content = System.Text.RegularExpressions.Regex.Replace(content, @"widescreen \d", $"widescreen {wideValue}");
-
-                File.WriteAllText(setFile, content);
-            }
-            catch { }
-        }
-
-        // ===================== ОБНОВЛЕНИЕ ФАЙЛОВ =====================
 
         private async Task<bool> RunUpdateProcess(bool forceVerify = false)
         {
@@ -370,8 +399,6 @@ del ""%~f0""
             finally { DownloadProgress.IsIndeterminate = false; }
         }
 
-        // ===================== ПРОЧЕЕ =====================
-
         private void SelectPath_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog ofd = new OpenFileDialog { Filter = "samp.exe|samp.exe" };
@@ -394,9 +421,9 @@ del ""%~f0""
                 {
                     Nickname = NickNameBox.Text,
                     GamePath = _gamePath,
-                    Resolution = (ResolutionBox.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "1920 x 1080",
+                    Resolution = (ResolutionBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "1920 x 1080",
                     FpsLimit = FpsLimitCheck.IsChecked == true,
-                    FpsLimitValue = (FpsLimitBox.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "60 FPS",
+                    FpsLimitValue = (FpsLimitBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "60 FPS",
                     Widescreen = WidescreenCheck.IsChecked == true
                 }));
             }
@@ -413,17 +440,14 @@ del ""%~f0""
                     NickNameBox.Text = config?.Nickname ?? "Jake_Toren";
                     _gamePath = config?.GamePath ?? "";
 
-                    // Разрешение
-                    foreach (System.Windows.Controls.ComboBoxItem item in ResolutionBox.Items)
+                    foreach (ComboBoxItem item in ResolutionBox.Items)
                         if (item.Content?.ToString() == config?.Resolution) { item.IsSelected = true; break; }
 
-                    // FPS
                     FpsLimitCheck.IsChecked = config?.FpsLimit ?? false;
                     FpsLimitBox.IsEnabled = config?.FpsLimit ?? false;
-                    foreach (System.Windows.Controls.ComboBoxItem item in FpsLimitBox.Items)
+                    foreach (ComboBoxItem item in FpsLimitBox.Items)
                         if (item.Content?.ToString() == config?.FpsLimitValue) { item.IsSelected = true; break; }
 
-                    // Widescreen
                     WidescreenCheck.IsChecked = config?.Widescreen ?? false;
                 }
                 catch { }
