@@ -74,6 +74,65 @@ namespace SAMPLauncher
             NavHome.Foreground = Brushes.White;
             NavSettings.Foreground = new SolidColorBrush(Color.FromRgb(0x8A, 0x8F, 0x98));
         }
+        // Добавь в начало класса к остальным событиям клика
+private void NavDebug_Click(object sender, MouseButtonEventArgs e)
+{
+    PageHome.Visibility = Visibility.Collapsed;
+    PageSettings.Visibility = Visibility.Collapsed;
+    PageDebug.Visibility = Visibility.Visible;
+    
+    NavDebug.Foreground = Brushes.White;
+    NavHome.Foreground = new SolidColorBrush(Color.FromRgb(0x8A, 0x8F, 0x98));
+    NavSettings.Foreground = new SolidColorBrush(Color.FromRgb(0x8A, 0x8F, 0x98));
+    
+    UpdateDebugLog();
+}
+
+private void UpdateDebugInfo_Click(object sender, RoutedEventArgs e) => UpdateDebugLog();
+
+private void UpdateDebugLog()
+{
+    var sb = new System.Text.StringBuilder();
+    sb.AppendLine($"=== FLYT RP DEBUG LOG [{DateTime.Now:HH:mm:ss}] ===");
+    
+    // 1. Проверка пути игры
+    sb.AppendLine($"[GAME PATH]: {_gamePath}");
+    sb.AppendLine($"[EXISTS]: {Directory.Exists(_gamePath)}");
+
+    // 2. Проверка Реестра (Никнейм)
+    try {
+        using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\SAMP")) {
+            var name = key?.GetValue("PlayerName");
+            sb.AppendLine($"[REGISTRY NICK]: {name ?? "NOT FOUND"}");
+        }
+    } catch (Exception e) { sb.AppendLine($"[REGISTRY ERROR]: {e.Message}"); }
+
+    // 3. Проверка sa-mp.cfg
+    string sampCfg = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "GTA San Andreas User Files", "SAMP", "sa-mp.cfg");
+    sb.AppendLine($"[SAMP.CFG PATH]: {sampCfg}");
+    if (File.Exists(sampCfg)) {
+        sb.AppendLine("[SAMP.CFG CONTENT]:");
+        sb.AppendLine(File.ReadAllText(sampCfg));
+    } else {
+        sb.AppendLine("[SAMP.CFG]: FILE MISSING!");
+    }
+
+    // 4. Проверка launcher.ini (для плагина)
+    string lIni = Path.Combine(_gamePath, "launcher.ini");
+    sb.AppendLine($"[LAUNCHER.INI PATH]: {lIni}");
+    if (File.Exists(lIni)) {
+        sb.AppendLine("[LAUNCHER.INI CONTENT]:");
+        sb.AppendLine(File.ReadAllText(lIni));
+    } else {
+        sb.AppendLine("[LAUNCHER.INI]: FILE MISSING!");
+    }
+
+    // 5. Проверка наличия плагина
+    string pluginPath = Path.Combine(_gamePath, "FlytLauncherSettings.asi");
+    sb.AppendLine($"[ASI PLUGIN]: {(File.Exists(pluginPath) ? "FOUND" : "NOT FOUND (Settings won't work!)")}");
+
+    DebugLogBox.Text = sb.ToString();
+}
 
         private void NavSettings_Click(object sender, MouseButtonEventArgs e)
         {
