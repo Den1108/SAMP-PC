@@ -182,13 +182,13 @@ del ""%~f0""
             }
 
             // Теперь запуск ищет samp.exe внутри скачанной структуры (в подпапке SAMP)
-            string sampExe = Path.Combine(_gamePath, "SAMP", "samp.exe");
+            string sampExe = Path.Combine(_gamePath, "samp.exe");
             if (File.Exists(sampExe))
             {
                 Process.Start(new ProcessStartInfo { 
                     FileName = sampExe, 
                     Arguments = $"{serverIP}:{serverPort} -n{NickNameBox.Text.Trim()}", 
-                    WorkingDirectory = Path.Combine(_gamePath, "SAMP"), 
+                    WorkingDirectory = _gamePath, 
                     UseShellExecute = true 
                 });
             }
