@@ -1,32 +1,46 @@
 name: Build Launcher
-on: [push]
+
+on:
+  push:
+    branches: [ "main", "master" ] # Сборка будет запускаться при пуше в эти ветки
+  pull_request:
+    branches: [ "main", "master" ]
 
 jobs:
   build:
     runs-on: windows-latest
+
     steps:
-      # Используем v4 для получения исходного кода
+      # 1. Получаем исходный код
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Используем v4 для настройки .NET
+      # 2. Устанавливаем .NET 8
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
 
-      # Восстановление зависимостей
+      # 3. Восстановление зависимостей
       - name: Restore dependencies
         run: dotnet restore
 
-      # Сборка проекта в режиме Release
-      - name: Build
-        run: dotnet build --configuration Release --no-restore
+      # 4. ПУБЛИКАЦИЯ (не просто Build)
+      # Используем publish, чтобы создать Single File + Self-Contained
+      - name: Publish Launcher
+        run: >
+          dotnet publish -c Release 
+          -r win-x64 
+          --self-contained true 
+          -p:PublishSingleFile=true 
+          -p:PublishReadyToRun=true 
+          -o ./publish
 
-      # ВАЖНО: Используем v4 для загрузки готового файла
+      # 5. Загрузка артефакта
+      # Теперь в архиве будет лежать только ОДИН файл FlytRP.exe
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Launcher-Build
-          # Указываем путь к собранным файлам
-          path: bin/Release/net8.0-windows/
+          name: FlytRP-Launcher-Standalone
+          # Указываем путь к папке, куда мы сделали Publish
+          path: ./publish/FlytRP.exe
