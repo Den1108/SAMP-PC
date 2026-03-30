@@ -14,7 +14,6 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Microsoft.Win32;
-using System.Text;
 
 namespace SAMPLauncher
 {
@@ -75,65 +74,6 @@ namespace SAMPLauncher
             NavHome.Foreground = Brushes.White;
             NavSettings.Foreground = new SolidColorBrush(Color.FromRgb(0x8A, 0x8F, 0x98));
         }
-        // Добавь в начало класса к остальным событиям клика
-private void NavDebug_Click(object sender, MouseButtonEventArgs e)
-{
-    PageHome.Visibility = Visibility.Collapsed;
-    PageSettings.Visibility = Visibility.Collapsed;
-    PageDebug.Visibility = Visibility.Visible;
-    
-    NavDebug.Foreground = Brushes.White;
-    NavHome.Foreground = new SolidColorBrush(Color.FromRgb(0x8A, 0x8F, 0x98));
-    NavSettings.Foreground = new SolidColorBrush(Color.FromRgb(0x8A, 0x8F, 0x98));
-    
-    UpdateDebugLog();
-}
-
-private void UpdateDebugInfo_Click(object sender, RoutedEventArgs e) => UpdateDebugLog();
-
-private void UpdateDebugLog()
-{
-    var sb = new System.Text.StringBuilder();
-    sb.AppendLine($"=== FLYT RP DEBUG LOG [{DateTime.Now:HH:mm:ss}] ===");
-    
-    // 1. Проверка пути игры
-    sb.AppendLine($"[GAME PATH]: {_gamePath}");
-    sb.AppendLine($"[EXISTS]: {Directory.Exists(_gamePath)}");
-
-    // 2. Проверка Реестра (Никнейм)
-    try {
-        using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\SAMP")) {
-            var name = key?.GetValue("PlayerName");
-            sb.AppendLine($"[REGISTRY NICK]: {name ?? "NOT FOUND"}");
-        }
-    } catch (Exception e) { sb.AppendLine($"[REGISTRY ERROR]: {e.Message}"); }
-
-    // 3. Проверка sa-mp.cfg
-    string sampCfg = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "GTA San Andreas User Files", "SAMP", "sa-mp.cfg");
-    sb.AppendLine($"[SAMP.CFG PATH]: {sampCfg}");
-    if (File.Exists(sampCfg)) {
-        sb.AppendLine("[SAMP.CFG CONTENT]:");
-        sb.AppendLine(File.ReadAllText(sampCfg));
-    } else {
-        sb.AppendLine("[SAMP.CFG]: FILE MISSING!");
-    }
-
-    // 4. Проверка launcher.ini (для плагина)
-    string lIni = Path.Combine(_gamePath, "launcher.ini");
-    sb.AppendLine($"[LAUNCHER.INI PATH]: {lIni}");
-    if (File.Exists(lIni)) {
-        sb.AppendLine("[LAUNCHER.INI CONTENT]:");
-        sb.AppendLine(File.ReadAllText(lIni));
-    } else {
-        sb.AppendLine("[LAUNCHER.INI]: FILE MISSING!");
-    }
-
-    // 5. Проверка наличия плагина
-    string pluginPath = Path.Combine(_gamePath, "FlytLauncherSettings.asi");
-    sb.AppendLine($"[ASI PLUGIN]: {(File.Exists(pluginPath) ? "FOUND" : "NOT FOUND (Settings won't work!)")}");
-
-    DebugLogBox.Text = sb.ToString();
-}
 
         private void NavSettings_Click(object sender, MouseButtonEventArgs e)
         {
@@ -151,66 +91,58 @@ private void UpdateDebugLog()
         }
 
         private void ApplyGameSettings()
-{
-    try
-    {
-        // 1. Путь к конфигу SAMP (Мои документы)
-        string sampFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "GTA San Andreas User Files", "SAMP");
-        if (!Directory.Exists(sampFolder)) Directory.CreateDirectory(sampFolder);
-        string sampCfgPath = Path.Combine(sampFolder, "sa-mp.cfg");
-
-        // Читаем FPS
-        string fpsVal = "90"; 
-        if (FpsLimitCheck.IsChecked == true && FpsLimitBox.SelectedItem is ComboBoxItem fpsItem)
         {
-            fpsVal = fpsItem.Content.ToString()!.Replace(" FPS", "").Trim();
-            if (fpsVal == "Без ограничений") fpsVal = "0";
-        }
-
-        // Сохраняем sa-mp.cfg в кодировке ANSI (Default)
-        // Важно: игра не понимает UTF-8
-        string cfgContent = $"fpslimit {fpsVal}\nmulticore 1\npagesize 10\n";
-        File.WriteAllText(sampCfgPath, cfgContent, Encoding.Default);
-
-        // 2. Никнейм в реестр
-        using (RegistryKey key = Registry.CurrentUser.CreateSubKey(@"Software\SAMP"))
-        {
-            key?.SetValue("PlayerName", NickNameBox.Text.Trim());
-        }
-
-        // 3. Launcher.ini в папку с игрой
-        if (Directory.Exists(_gamePath))
-        {
-            int w = 1920, h = 1080;
-            if (ResolutionBox.SelectedItem is ComboBoxItem resItem)
+            try
             {
-                var parts = resItem.Content.ToString()!.ToLower().Split('x');
-                if (parts.Length == 2)
+                string docPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                string sampDir = Path.Combine(docPath, "GTA San Andreas User Files", "SAMP");
+                string sampCfg = Path.Combine(sampDir, "sa-mp.cfg");
+
+                if (!Directory.Exists(sampDir)) Directory.CreateDirectory(sampDir);
+
+                int width = 1920, height = 1080;
+                if (ResolutionBox.SelectedItem is ComboBoxItem resItem)
                 {
-                    int.TryParse(parts[0].Trim(), out w);
-                    int.TryParse(parts[1].Trim(), out h);
+                    var parts = resItem.Content.ToString()!.Replace(" ", "").Split('x');
+                    if (parts.Length == 2)
+                    {
+                        int.TryParse(parts[0], out width);
+                        int.TryParse(parts[1], out height);
+                    }
                 }
+
+                int fps = 60;
+                if (FpsLimitCheck.IsChecked == true && FpsLimitBox.SelectedItem is ComboBoxItem fpsItem)
+                {
+                    var fpsStr = fpsItem.Content.ToString()!.Replace(" FPS", "").Trim();
+                    if (fpsStr == "Без ограничений") fps = 0;
+                    else int.TryParse(fpsStr, out fps);
+                }
+
+                int widescreen = WidescreenCheck.IsChecked == true ? 1 : 0;
+
+                string cfg =
+                    $"pagesize 0\n" +
+                    $"checkfiles 0\n" +
+                    $"fps {fps}\n" +
+                    $"multicore 1\n" +
+                    $"directmode 0\n" +
+                    $"audiomsgoff 1\n" +
+                    $"audioproxyoff 0\n" +
+                    $"imeoff 0\n" +
+                    $"novattention 0\n" +
+                    $"inbrowsers 0\n" +
+                    $"nonametagstatus 1\n" +
+                    $"timestamp 0\n" +
+                    $"fontedge 0\n" +
+                    $"widescreen {widescreen}\n" +
+                    $"width {width}\n" +
+                    $"height {height}\n";
+
+                File.WriteAllText(sampCfg, cfg);
             }
-
-            int wide = WidescreenCheck.IsChecked == true ? 1 : 0;
-            string iniPath = Path.Combine(_gamePath, "launcher.ini");
-
-            // Строго формат INI без лишних пробелов
-            string iniContent = "[Settings]\n" +
-                               $"Width={w}\n" +
-                               $"Height={h}\n" +
-                               $"Widescreen={wide}\n" +
-                               $"FpsLimit={fpsVal}\n";
-
-            File.WriteAllText(iniPath, iniContent, Encoding.Default);
+            catch { }
         }
-    }
-    catch (Exception ex) 
-    { 
-        // Если будет ошибка доступа, ты увидишь её в окне отладки (Debug)
-        System.Diagnostics.Debug.WriteLine("Ошибка записи настроек: " + ex.Message); 
-    }
-}
 
         private void ClearCache_Click(object sender, RoutedEventArgs e)
         {
@@ -370,8 +302,6 @@ del ""%~f0""
             btn.IsEnabled = false;
 
             if (!Directory.Exists(_gamePath)) Directory.CreateDirectory(_gamePath);
-            
-            // Принудительно сохраняем и применяем перед запуском
             SaveSettings();
             ApplyGameSettings();
 
@@ -384,7 +314,6 @@ del ""%~f0""
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = sampExe,
-                    // Никнейм теперь берется из реестра, но можно оставить и -n для подстраховки
                     Arguments = $"{serverIP}:{serverPort} -n{NickNameBox.Text.Trim()}",
                     WorkingDirectory = _gamePath,
                     UseShellExecute = true

@@ -114,19 +114,6 @@
                     </Grid>
                 </Border>
 
-<TextBlock x:Name="NavDebug" Text="DEBUG" Foreground="#8A8F98" FontSize="16" FontWeight="Bold" Margin="0,0,20,0" Cursor="Hand" MouseDown="NavDebug_Click"/>
-
-<Grid x:Name="PageDebug" Visibility="Collapsed" Margin="40,20">
-    <StackPanel>
-        <TextBlock Text="ОТЛАДКА НАСТРОЕК" Foreground="White" FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
-        <Border Background="#1A1D21" CornerRadius="10" Padding="15">
-            <TextBox x:Name="DebugLogBox" Background="Transparent" Foreground="#32CD32" BorderThickness="0" 
-                     IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Height="400" FontFamily="Consolas"/>
-        </Border>
-        <Button Content="ОБНОВИТЬ ДАННЫЕ" Click="UpdateDebugInfo_Click" Margin="0,20,0,0" Height="40" Background="#2A2D34" Foreground="White"/>
-    </StackPanel>
-</Grid>
-
                 <!-- НАСТРОЙКИ -->
                 <Border x:Name="PageSettings" Margin="30,10,30,20" CornerRadius="20" Background="#1A1D21" Visibility="Collapsed">
                     <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="40,30">
