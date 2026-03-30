@@ -154,52 +154,62 @@ private void UpdateDebugLog()
 {
     try
     {
-        // 1. Путь к sa-mp.cfg (Мои документы)
-        string docPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "GTA San Andreas User Files", "SAMP");
-        if (!Directory.Exists(docPath)) Directory.CreateDirectory(docPath);
-        
-        string sampCfgPath = Path.Combine(docPath, "sa-mp.cfg");
+        // 1. Путь к конфигу SAMP (Мои документы)
+        string sampFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "GTA San Andreas User Files", "SAMP");
+        if (!Directory.Exists(sampFolder)) Directory.CreateDirectory(sampFolder);
+        string sampCfgPath = Path.Combine(sampFolder, "sa-mp.cfg");
 
-        // Сбор данных из UI
-        string fpsVal = "90";
+        // Читаем FPS
+        string fpsVal = "90"; 
         if (FpsLimitCheck.IsChecked == true && FpsLimitBox.SelectedItem is ComboBoxItem fpsItem)
-            fpsVal = fpsItem.Content.ToString()!.Replace(" FPS", "").Replace("Без ограничений", "0").Trim();
+        {
+            fpsVal = fpsItem.Content.ToString()!.Replace(" FPS", "").Trim();
+            if (fpsVal == "Без ограничений") fpsVal = "0";
+        }
 
-        // Формируем чистый конфиг для SA-MP (ANSI кодировка)
-        string cfg = $"pagesize 10\nfpslimit {fpsVal}\nmulticore 1\naudiomsgoff 1\ntimestamp 0\n";
-        File.WriteAllText(sampCfgPath, cfg, Encoding.Default);
+        // Сохраняем sa-mp.cfg в кодировке ANSI (Default)
+        // Важно: игра не понимает UTF-8
+        string cfgContent = $"fpslimit {fpsVal}\nmulticore 1\npagesize 10\n";
+        File.WriteAllText(sampCfgPath, cfgContent, Encoding.Default);
 
-        // 2. Реестр (Никнейм)
+        // 2. Никнейм в реестр
         using (RegistryKey key = Registry.CurrentUser.CreateSubKey(@"Software\SAMP"))
         {
             key?.SetValue("PlayerName", NickNameBox.Text.Trim());
         }
 
-        // 3. Launcher.ini (Для твоего .asi плагина)
+        // 3. Launcher.ini в папку с игрой
         if (Directory.Exists(_gamePath))
         {
             int w = 1920, h = 1080;
             if (ResolutionBox.SelectedItem is ComboBoxItem resItem)
             {
-                var parts = resItem.Content.ToString()!.Replace(" ", "").Split('x');
-                if (parts.Length == 2) { int.TryParse(parts[0], out w); int.TryParse(parts[1], out h); }
+                var parts = resItem.Content.ToString()!.ToLower().Split('x');
+                if (parts.Length == 2)
+                {
+                    int.TryParse(parts[0].Trim(), out w);
+                    int.TryParse(parts[1].Trim(), out h);
+                }
             }
 
             int wide = WidescreenCheck.IsChecked == true ? 1 : 0;
             string iniPath = Path.Combine(_gamePath, "launcher.ini");
 
-            // Важно: Пишем БЕЗ пробелов вокруг '=' и в Encoding.Default (ANSI)
-            StringBuilder sb = new StringBuilder();
-            sb.AppendLine("[Settings]");
-            sb.AppendLine($"Width={w}");
-            sb.AppendLine($"Height={h}");
-            sb.AppendLine($"Widescreen={wide}");
-            sb.AppendLine($"FpsLimit={fpsVal}");
+            // Строго формат INI без лишних пробелов
+            string iniContent = "[Settings]\n" +
+                               $"Width={w}\n" +
+                               $"Height={h}\n" +
+                               $"Widescreen={wide}\n" +
+                               $"FpsLimit={fpsVal}\n";
 
-            File.WriteAllText(iniPath, sb.ToString(), Encoding.Default);
+            File.WriteAllText(iniPath, iniContent, Encoding.Default);
         }
     }
-    catch (Exception ex) { Debug.WriteLine("Ошибка: " + ex.Message); }
+    catch (Exception ex) 
+    { 
+        // Если будет ошибка доступа, ты увидишь её в окне отладки (Debug)
+        System.Diagnostics.Debug.WriteLine("Ошибка записи настроек: " + ex.Message); 
+    }
 }
 
         private void ClearCache_Click(object sender, RoutedEventArgs e)
