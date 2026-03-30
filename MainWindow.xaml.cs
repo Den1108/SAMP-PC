@@ -18,14 +18,14 @@ namespace SAMPLauncher
 {
     public partial class MainWindow : Window
     {
-        private const string CurrentLauncherVersion = "1.0.3"; 
+        private const string CurrentLauncherVersion = "1.0.4";
 
         private string configPath = "config.json";
         private string _gamePath = "";
-        
-        private string serverIP = "188.127.241.8"; 
+
+        private string serverIP = "188.127.241.8";
         private int serverPort = 1179;
-        private string distributionUrl = "http://87.106.105.24:12867/distribution.json"; 
+        private string distributionUrl = "http://87.106.105.24:12867/distribution.json";
 
         private DispatcherTimer _queryTimer;
 
@@ -34,9 +34,10 @@ namespace SAMPLauncher
             InitializeComponent();
             LoadSettings();
 
-            // Если путь не задан, создаем папку "files" в папке с лаунчером
             if (string.IsNullOrEmpty(_gamePath))
                 _gamePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "files");
+
+            GamePathText.Text = _gamePath;
 
             UpdateServerInfo();
 
@@ -48,6 +49,70 @@ namespace SAMPLauncher
             _ = CheckLauncherUpdate();
         }
 
+        // ===================== НАВИГАЦИЯ =====================
+
+        private void NavHome_Click(object sender, MouseButtonEventArgs e)
+        {
+            PageHome.Visibility = Visibility.Visible;
+            PageSettings.Visibility = Visibility.Collapsed;
+            NavHome.Foreground = Brushes.White;
+            NavSettings.Foreground = new SolidColorBrush(Color.FromRgb(0x8A, 0x8F, 0x98));
+        }
+
+        private void NavSettings_Click(object sender, MouseButtonEventArgs e)
+        {
+            PageHome.Visibility = Visibility.Collapsed;
+            PageSettings.Visibility = Visibility.Visible;
+            NavSettings.Foreground = Brushes.White;
+            NavHome.Foreground = new SolidColorBrush(Color.FromRgb(0x8A, 0x8F, 0x98));
+            GamePathText.Text = _gamePath;
+        }
+
+        // ===================== НАСТРОЙКИ =====================
+
+        private void FpsLimit_Changed(object sender, RoutedEventArgs e)
+        {
+            if (FpsLimitBox != null)
+                FpsLimitBox.IsEnabled = FpsLimitCheck.IsChecked == true;
+        }
+
+        private void ClearCache_Click(object sender, RoutedEventArgs e)
+        {
+            var result = MessageBox.Show(
+                "Вы уверены? Все файлы игры будут удалены и скачаны заново при следующем запуске.",
+                "Очистить кэш", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            if (result != MessageBoxResult.Yes) return;
+
+            try
+            {
+                if (Directory.Exists(_gamePath))
+                {
+                    Directory.Delete(_gamePath, true);
+                    Directory.CreateDirectory(_gamePath);
+                }
+                StatusText.Text = "Кэш очищен";
+                MessageBox.Show("Кэш успешно очищен. При следующем нажатии «Играть» файлы будут скачаны заново.", "Flyt RP");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Ошибка при очистке кэша: " + ex.Message, "Flyt RP");
+            }
+        }
+
+        private async void RepairGame_Click(object sender, RoutedEventArgs e)
+        {
+            NavHome_Click(sender, null!);
+            StatusText.Text = "Проверка файлов...";
+            DownloadProgress.Value = 0;
+
+            bool success = await RunUpdateProcess(forceVerify: true);
+            if (success)
+                MessageBox.Show("Проверка завершена. Все файлы в порядке!", "Починить игру");
+        }
+
+        // ===================== ОБНОВЛЕНИЕ ЛАУНЧЕРА =====================
+
         private async Task CheckLauncherUpdate()
         {
             try
@@ -56,14 +121,15 @@ namespace SAMPLauncher
                 {
                     string json = await client.GetStringAsync(distributionUrl);
                     var dist = JsonSerializer.Deserialize<Distribution>(json);
-                    
+
                     if (dist != null && !string.IsNullOrEmpty(dist.LauncherVersion))
                     {
                         if (dist.LauncherVersion != CurrentLauncherVersion)
                         {
-                            var result = MessageBox.Show($"Доступна новая версия Flyt RP ({dist.LauncherVersion}). Обновить?", 
+                            var result = MessageBox.Show(
+                                $"Доступна новая версия Flyt RP ({dist.LauncherVersion}). Обновить?",
                                 "Обновление лаунчера", MessageBoxButton.YesNo, MessageBoxImage.Information);
-                            
+
                             if (result == MessageBoxResult.Yes && !string.IsNullOrEmpty(dist.CdnLauncher))
                                 await UpdateSelf(dist.CdnLauncher);
                         }
@@ -79,9 +145,9 @@ namespace SAMPLauncher
             {
                 string currentExe = Process.GetCurrentProcess().MainModule!.FileName!;
                 string newExe = currentExe + "_new.exe";
-                
+
                 StatusText.Text = "Обновление лаунчера...";
-                
+
                 using (HttpClient client = new HttpClient())
                 {
                     byte[] data = await client.GetByteArrayAsync(url);
@@ -106,6 +172,8 @@ del ""%~f0""
                 MessageBox.Show("Ошибка при самообновлении: " + ex.Message);
             }
         }
+
+        // ===================== СЕРВЕР =====================
 
         private void UpdateServerInfo()
         {
@@ -142,7 +210,7 @@ del ""%~f0""
                         using (BinaryWriter bw = new BinaryWriter(ms))
                         {
                             bw.Write("SAMP".ToCharArray());
-                            bw.Write(new byte[] { 0, 0, 0, 0 }); 
+                            bw.Write(new byte[] { 0, 0, 0, 0 });
                             bw.Write((ushort)port);
                             bw.Write((byte)'i');
                         }
@@ -159,9 +227,12 @@ del ""%~f0""
                         return (true, players, maxPlayers);
                     }
                 }
-            } catch { }
+            }
+            catch { }
             return (false, 0, 0);
         }
+
+        // ===================== ИГРА =====================
 
         private async void Play_Click(object sender, RoutedEventArgs e)
         {
@@ -174,22 +245,17 @@ del ""%~f0""
             bool updateSuccess = await RunUpdateProcess();
             if (!updateSuccess) { btn.IsEnabled = true; return; }
 
-            if (TestModeCheck.IsChecked == true)
-            {
-                MessageBox.Show("Режим теста: запуск отменен.", "Flyt RP");
-                btn.IsEnabled = true;
-                return;
-            }
-
-            // Теперь запуск ищет samp.exe внутри скачанной структуры (в подпапке SAMP)
             string sampExe = Path.Combine(_gamePath, "samp.exe");
             if (File.Exists(sampExe))
             {
-                Process.Start(new ProcessStartInfo { 
-                    FileName = sampExe, 
-                    Arguments = $"{serverIP}:{serverPort} -n{NickNameBox.Text.Trim()}", 
-                    WorkingDirectory = _gamePath, 
-                    UseShellExecute = true 
+                ApplyGameSettings();
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = sampExe,
+                    Arguments = $"{serverIP}:{serverPort} -n{NickNameBox.Text.Trim()}",
+                    WorkingDirectory = _gamePath,
+                    UseShellExecute = true
                 });
             }
             else { MessageBox.Show($"Файл samp.exe не найден по пути: {sampExe}"); }
@@ -197,11 +263,43 @@ del ""%~f0""
             btn.IsEnabled = true;
         }
 
-        private async Task<bool> RunUpdateProcess()
+        private void ApplyGameSettings()
         {
             try
             {
-                StatusText.Text = "Синхронизация...";
+                // Применяем разрешение и настройки через gta_sa.set
+                string setFile = Path.Combine(_gamePath, "gta_sa.set");
+                if (!File.Exists(setFile)) return;
+
+                string content = File.ReadAllText(setFile);
+
+                // Разрешение
+                if (ResolutionBox.SelectedItem is System.Windows.Controls.ComboBoxItem resItem)
+                {
+                    var parts = resItem.Content.ToString()!.Replace(" ", "").Split('x');
+                    if (parts.Length == 2 && int.TryParse(parts[0], out int w) && int.TryParse(parts[1], out int h))
+                    {
+                        content = System.Text.RegularExpressions.Regex.Replace(content, @"width \d+", $"width {w}");
+                        content = System.Text.RegularExpressions.Regex.Replace(content, @"height \d+", $"height {h}");
+                    }
+                }
+
+                // Widescreen
+                string wideValue = WidescreenCheck.IsChecked == true ? "1" : "0";
+                content = System.Text.RegularExpressions.Regex.Replace(content, @"widescreen \d", $"widescreen {wideValue}");
+
+                File.WriteAllText(setFile, content);
+            }
+            catch { }
+        }
+
+        // ===================== ОБНОВЛЕНИЕ ФАЙЛОВ =====================
+
+        private async Task<bool> RunUpdateProcess(bool forceVerify = false)
+        {
+            try
+            {
+                StatusText.Text = forceVerify ? "Проверка файлов..." : "Синхронизация...";
                 DownloadProgress.IsIndeterminate = true;
 
                 using (HttpClient client = new HttpClient())
@@ -215,8 +313,7 @@ del ""%~f0""
                     foreach (var file in dist.Cache)
                     {
                         if (string.IsNullOrEmpty(file.Name)) continue;
-                        
-                        // Удаляем префикс 'files\' (или 'files/'), чтобы получить чистый путь внутри папки игры
+
                         string cleanPath = file.Name;
                         if (cleanPath.StartsWith("files\\", StringComparison.OrdinalIgnoreCase)) cleanPath = cleanPath.Substring(6);
                         else if (cleanPath.StartsWith("files/", StringComparison.OrdinalIgnoreCase)) cleanPath = cleanPath.Substring(6);
@@ -234,8 +331,7 @@ del ""%~f0""
                         for (int i = 0; i < toDownload.Count; i++)
                         {
                             var file = toDownload[i];
-                            
-                            // Повторяем очистку для сохранения
+
                             string cleanName = file.Name!;
                             if (cleanName.StartsWith("files\\", StringComparison.OrdinalIgnoreCase)) cleanName = cleanName.Substring(6);
                             else if (cleanName.StartsWith("files/", StringComparison.OrdinalIgnoreCase)) cleanName = cleanName.Substring(6);
@@ -244,72 +340,119 @@ del ""%~f0""
                             DownloadProgress.Value = (double)(i + 1) / toDownload.Count * 100;
 
                             string baseCdn = dist.CdnCache?.TrimEnd('/') ?? "";
-                            // Для URL используем оригинальное имя из JSON (с 'files/'), заменяя слэши
                             string urlPath = file.Name!.Replace("\\", "/");
                             string url = $"{baseCdn}/{urlPath}";
 
                             byte[] data = await client.GetByteArrayAsync(url);
                             string savePath = Path.Combine(_gamePath, cleanName);
-                            
+
                             string? dir = Path.GetDirectoryName(savePath);
                             if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-                            
+
                             await File.WriteAllBytesAsync(savePath, data);
                         }
                         StatusText.Text = "Обновлено!";
                     }
-                    else { StatusText.Text = "Версия актуальна"; DownloadProgress.Value = 100; }
+                    else
+                    {
+                        StatusText.Text = "Версия актуальна";
+                        DownloadProgress.Value = 100;
+                    }
                 }
                 return true;
             }
-            catch (Exception ex) 
-            { 
-                StatusText.Text = "Ошибка обновления"; 
+            catch (Exception ex)
+            {
+                StatusText.Text = "Ошибка обновления";
                 MessageBox.Show($"Ошибка скачивания: {ex.Message}", "Flyt RP");
                 return false;
             }
             finally { DownloadProgress.IsIndeterminate = false; }
         }
 
+        // ===================== ПРОЧЕЕ =====================
+
         private void SelectPath_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog ofd = new OpenFileDialog { Filter = "samp.exe|samp.exe" };
-            if (ofd.ShowDialog() == true) { _gamePath = Path.GetDirectoryName(ofd.FileName) ?? ""; SaveSettings(); }
+            if (ofd.ShowDialog() == true)
+            {
+                _gamePath = Path.GetDirectoryName(ofd.FileName) ?? "";
+                GamePathText.Text = _gamePath;
+                SaveSettings();
+            }
         }
 
         private void Header_MouseDown(object sender, MouseButtonEventArgs e) { if (e.LeftButton == MouseButtonState.Pressed) DragMove(); }
         private void Close_Click(object sender, RoutedEventArgs e) => Application.Current.Shutdown();
 
-        private void SaveSettings() {
-            try { File.WriteAllText(configPath, JsonSerializer.Serialize(new LauncherConfig { Nickname = NickNameBox.Text, GamePath = _gamePath })); } catch { }
+        private void SaveSettings()
+        {
+            try
+            {
+                File.WriteAllText(configPath, JsonSerializer.Serialize(new LauncherConfig
+                {
+                    Nickname = NickNameBox.Text,
+                    GamePath = _gamePath,
+                    Resolution = (ResolutionBox.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "1920 x 1080",
+                    FpsLimit = FpsLimitCheck.IsChecked == true,
+                    FpsLimitValue = (FpsLimitBox.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "60 FPS",
+                    Widescreen = WidescreenCheck.IsChecked == true
+                }));
+            }
+            catch { }
         }
 
-        private void LoadSettings() {
-            if (File.Exists(configPath)) {
-                try {
+        private void LoadSettings()
+        {
+            if (File.Exists(configPath))
+            {
+                try
+                {
                     var config = JsonSerializer.Deserialize<LauncherConfig>(File.ReadAllText(configPath));
                     NickNameBox.Text = config?.Nickname ?? "Jake_Toren";
                     _gamePath = config?.GamePath ?? "";
-                } catch { }
+
+                    // Разрешение
+                    foreach (System.Windows.Controls.ComboBoxItem item in ResolutionBox.Items)
+                        if (item.Content?.ToString() == config?.Resolution) { item.IsSelected = true; break; }
+
+                    // FPS
+                    FpsLimitCheck.IsChecked = config?.FpsLimit ?? false;
+                    FpsLimitBox.IsEnabled = config?.FpsLimit ?? false;
+                    foreach (System.Windows.Controls.ComboBoxItem item in FpsLimitBox.Items)
+                        if (item.Content?.ToString() == config?.FpsLimitValue) { item.IsSelected = true; break; }
+
+                    // Widescreen
+                    WidescreenCheck.IsChecked = config?.Widescreen ?? false;
+                }
+                catch { }
             }
         }
     }
 
-    public class Distribution {
+    public class Distribution
+    {
         [JsonPropertyName("cache")] public List<CacheFile>? Cache { get; set; }
         [JsonPropertyName("cdnCache")] public string? CdnCache { get; set; }
         [JsonPropertyName("launcherVersion")] public string? LauncherVersion { get; set; }
         [JsonPropertyName("cdnLauncher")] public string? CdnLauncher { get; set; }
     }
 
-    public class CacheFile {
+    public class CacheFile
+    {
         [JsonPropertyName("id")] public int Id { get; set; }
         [JsonPropertyName("name")] public string? Name { get; set; }
         [JsonPropertyName("bytes")] public List<long>? Bytes { get; set; }
     }
 
-    public class LauncherConfig {
+    public class LauncherConfig
+    {
         public string? Nickname { get; set; }
         public string? GamePath { get; set; }
+        public string? Resolution { get; set; }
+        public bool FpsLimit { get; set; }
+        public string? FpsLimitValue { get; set; }
+        public bool Widescreen { get; set; }
     }
 }
