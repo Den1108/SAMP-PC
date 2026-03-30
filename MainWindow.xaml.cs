@@ -14,6 +14,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Microsoft.Win32;
+using System.Text;
 
 namespace SAMPLauncher
 {
@@ -150,92 +151,56 @@ private void UpdateDebugLog()
         }
 
         private void ApplyGameSettings()
+{
+    try
+    {
+        // 1. Путь к sa-mp.cfg (Мои документы)
+        string docPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "GTA San Andreas User Files", "SAMP");
+        if (!Directory.Exists(docPath)) Directory.CreateDirectory(docPath);
+        
+        string sampCfgPath = Path.Combine(docPath, "sa-mp.cfg");
+
+        // Сбор данных из UI
+        string fpsVal = "90";
+        if (FpsLimitCheck.IsChecked == true && FpsLimitBox.SelectedItem is ComboBoxItem fpsItem)
+            fpsVal = fpsItem.Content.ToString()!.Replace(" FPS", "").Replace("Без ограничений", "0").Trim();
+
+        // Формируем чистый конфиг для SA-MP (ANSI кодировка)
+        string cfg = $"pagesize 10\nfpslimit {fpsVal}\nmulticore 1\naudiomsgoff 1\ntimestamp 0\n";
+        File.WriteAllText(sampCfgPath, cfg, Encoding.Default);
+
+        // 2. Реестр (Никнейм)
+        using (RegistryKey key = Registry.CurrentUser.CreateSubKey(@"Software\SAMP"))
         {
-            try
-            {
-                // 1. Запись стандартных настроек SA-MP в sa-mp.cfg
-                string docPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-                string sampDir = Path.Combine(docPath, "GTA San Andreas User Files", "SAMP");
-                string sampCfg = Path.Combine(sampDir, "sa-mp.cfg");
-
-                if (!Directory.Exists(sampDir)) Directory.CreateDirectory(sampDir);
-
-                int width = 1920, height = 1080;
-                if (ResolutionBox.SelectedItem is ComboBoxItem resItem)
-                {
-                    var parts = resItem.Content.ToString()!.Replace(" ", "").Split('x');
-                    if (parts.Length == 2)
-                    {
-                        int.TryParse(parts[0], out width);
-                        int.TryParse(parts[1], out height);
-                    }
-                }
-
-                int fps = 60;
-                if (FpsLimitCheck.IsChecked == true && FpsLimitBox.SelectedItem is ComboBoxItem fpsItem)
-                {
-                    var fpsStr = fpsItem.Content.ToString()!.Replace(" FPS", "").Trim();
-                    if (fpsStr == "Без ограничений") fps = 0; // В SA-MP 0 или 90 обычно снимают лимит
-                    else int.TryParse(fpsStr, out fps);
-                }
-                else
-                {
-                    fps = 90; // Дефолтный лимит, если чекбокс выключен
-                }
-
-                int widescreen = WidescreenCheck.IsChecked == true ? 1 : 0;
-
-                // ИСПРАВЛЕНИЕ: Используем 'fpslimit' вместо 'fps'
-                string cfg =
-                    $"pagesize 0\n" +
-                    $"checkfiles 0\n" +
-                    $"fpslimit {fps}\n" +
-                    $"multicore 1\n" +
-                    $"directmode 0\n" +
-                    $"audiomsgoff 1\n" +
-                    $"audioproxyoff 0\n" +
-                    $"imeoff 0\n" +
-                    $"novattention 0\n" +
-                    $"inbrowsers 0\n" +
-                    $"nonametagstatus 1\n" +
-                    $"timestamp 0\n" +
-                    $"fontedge 0\n"; 
-
-                File.WriteAllText(sampCfg, cfg);
-
-                // 2. Запись кастомных графических настроек (Разрешение, Widescreen) 
-                // Создаем launcher.ini в папке с игрой для чтения вашими ASI-плагинами
-                if (Directory.Exists(_gamePath))
-                {
-                    string launcherIniPath = Path.Combine(_gamePath, "launcher.ini");
-                    string iniContent = 
-                        $"[Settings]\n" +
-                        $"Width={width}\n" +
-                        $"Height={height}\n" +
-                        $"Widescreen={widescreen}\n" +
-                        $"FpsLimit={fps}\n";
-                    
-                    File.WriteAllText(launcherIniPath, iniContent);
-                }
-
-                // 3. Установка никнейма через Реестр Windows (самый надежный способ для SA-MP)
-                string nickname = NickNameBox.Text.Trim();
-                if (!string.IsNullOrEmpty(nickname))
-                {
-                    using (RegistryKey key = Registry.CurrentUser.CreateSubKey(@"Software\SAMP"))
-                    {
-                        if (key != null)
-                        {
-                            key.SetValue("PlayerName", nickname);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Ошибка при применении настроек: {ex.Message}");
-            }
+            key?.SetValue("PlayerName", NickNameBox.Text.Trim());
         }
+
+        // 3. Launcher.ini (Для твоего .asi плагина)
+        if (Directory.Exists(_gamePath))
+        {
+            int w = 1920, h = 1080;
+            if (ResolutionBox.SelectedItem is ComboBoxItem resItem)
+            {
+                var parts = resItem.Content.ToString()!.Replace(" ", "").Split('x');
+                if (parts.Length == 2) { int.TryParse(parts[0], out w); int.TryParse(parts[1], out h); }
+            }
+
+            int wide = WidescreenCheck.IsChecked == true ? 1 : 0;
+            string iniPath = Path.Combine(_gamePath, "launcher.ini");
+
+            // Важно: Пишем БЕЗ пробелов вокруг '=' и в Encoding.Default (ANSI)
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("[Settings]");
+            sb.AppendLine($"Width={w}");
+            sb.AppendLine($"Height={h}");
+            sb.AppendLine($"Widescreen={wide}");
+            sb.AppendLine($"FpsLimit={fpsVal}");
+
+            File.WriteAllText(iniPath, sb.ToString(), Encoding.Default);
+        }
+    }
+    catch (Exception ex) { Debug.WriteLine("Ошибка: " + ex.Message); }
+}
 
         private void ClearCache_Click(object sender, RoutedEventArgs e)
         {
