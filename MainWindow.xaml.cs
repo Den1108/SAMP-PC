@@ -18,8 +18,7 @@ namespace SAMPLauncher
 {
     public partial class MainWindow : Window
     {
-        // ВЕРСИЯ ЛАУНЧЕРА
-        private const string CurrentLauncherVersion = "1.0.2"; 
+        private const string CurrentLauncherVersion = "1.0.3"; 
 
         private string configPath = "config.json";
         private string _gamePath = "";
@@ -36,9 +35,7 @@ namespace SAMPLauncher
             LoadSettings();
 
             if (string.IsNullOrEmpty(_gamePath))
-            {
                 _gamePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SAMP");
-            }
 
             UpdateServerInfo();
 
@@ -47,7 +44,6 @@ namespace SAMPLauncher
             _queryTimer.Tick += (s, e) => UpdateServerInfo();
             _queryTimer.Start();
 
-            // Запускаем проверку обновления самого лаунчера при старте
             _ = CheckLauncherUpdate();
         }
 
@@ -68,9 +64,7 @@ namespace SAMPLauncher
                                 "Обновление лаунчера", MessageBoxButton.YesNo, MessageBoxImage.Information);
                             
                             if (result == MessageBoxResult.Yes && !string.IsNullOrEmpty(dist.CdnLauncher))
-                            {
                                 await UpdateSelf(dist.CdnLauncher);
-                            }
                         }
                     }
                 }
@@ -103,7 +97,6 @@ start """" ""{currentExe}""
 del ""%~f0""
 ";
                 await File.WriteAllTextAsync(batchFile, batContent);
-
                 Process.Start(new ProcessStartInfo { FileName = batchFile, CreateNoWindow = true, UseShellExecute = false });
                 Application.Current.Shutdown();
             }
@@ -225,7 +218,18 @@ del ""%~f0""
                         long remoteSize = (file.Bytes != null && file.Bytes.Count > 0) ? file.Bytes[0] : 0;
 
                         if (!File.Exists(localPath) || new FileInfo(localPath).Length != remoteSize)
+                        {
+                            // ОТЛАДКА: показываем первый несовпадающий файл
+                            MessageBox.Show(
+                                $"НЕ СОВПАДАЕТ:\n" +
+                                $"Файл: {localPath}\n" +
+                                $"Существует: {File.Exists(localPath)}\n" +
+                                $"Размер локальный: {(File.Exists(localPath) ? new FileInfo(localPath).Length : 0)}\n" +
+                                $"Размер в манифесте: {remoteSize}",
+                                "Отладка");
+                            break; // убрать break после того как найдёшь проблему
                             toDownload.Add(file);
+                        }
                     }
 
                     if (toDownload.Count > 0)
@@ -239,7 +243,8 @@ del ""%~f0""
                             DownloadProgress.Value = (double)(i + 1) / toDownload.Count * 100;
 
                             string baseCdn = dist.CdnCache?.TrimEnd('/') ?? "";
-                            string url = $"{baseCdn}/{file.Name.Replace("\\", "/")}";
+                            string filePath = file.Name!.Replace("\\", "/").TrimStart('/');
+                            string url = $"{baseCdn}/{filePath}";
 
                             byte[] data = await client.GetByteArrayAsync(url);
                             string savePath = Path.Combine(_gamePath, cleanName);
