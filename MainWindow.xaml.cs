@@ -94,22 +94,11 @@ namespace SAMPLauncher
         {
             try
             {
+                // sa-mp.cfg для FPS
                 string docPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
                 string sampDir = Path.Combine(docPath, "GTA San Andreas User Files", "SAMP");
                 string sampCfg = Path.Combine(sampDir, "sa-mp.cfg");
-
                 if (!Directory.Exists(sampDir)) Directory.CreateDirectory(sampDir);
-
-                int width = 1920, height = 1080;
-                if (ResolutionBox.SelectedItem is ComboBoxItem resItem)
-                {
-                    var parts = resItem.Content.ToString()!.Replace(" ", "").Split('x');
-                    if (parts.Length == 2)
-                    {
-                        int.TryParse(parts[0], out width);
-                        int.TryParse(parts[1], out height);
-                    }
-                }
 
                 int fps = 60;
                 if (FpsLimitCheck.IsChecked == true && FpsLimitBox.SelectedItem is ComboBoxItem fpsItem)
@@ -118,28 +107,48 @@ namespace SAMPLauncher
                     if (fpsStr == "Без ограничений") fps = 0;
                     else int.TryParse(fpsStr, out fps);
                 }
+                File.WriteAllText(sampCfg,
+                    $"pagesize 0\ncheckfiles 0\nfps {fps}\nmulticore 1\ndirectmode 0\n" +
+                    $"audiomsgoff 1\naudioproxyoff 0\nimeoff 0\nnovattention 0\n" +
+                    $"inbrowsers 0\nnonametagstatus 1\ntimestamp 0\nfontedge 0\n");
 
-                int widescreen = WidescreenCheck.IsChecked == true ? 1 : 0;
+                // gta_sa.set для разрешения и widescreen
+                string setPath = Path.Combine(docPath, "GTA San Andreas User Files", "gta_sa.set");
+                if (!File.Exists(setPath)) return;
 
-                string cfg =
-                    $"pagesize 0\n" +
-                    $"checkfiles 0\n" +
-                    $"fps {fps}\n" +
-                    $"multicore 1\n" +
-                    $"directmode 0\n" +
-                    $"audiomsgoff 1\n" +
-                    $"audioproxyoff 0\n" +
-                    $"imeoff 0\n" +
-                    $"novattention 0\n" +
-                    $"inbrowsers 0\n" +
-                    $"nonametagstatus 1\n" +
-                    $"timestamp 0\n" +
-                    $"fontedge 0\n" +
-                    $"widescreen {widescreen}\n" +
-                    $"width {width}\n" +
-                    $"height {height}\n";
+                byte[] setData = File.ReadAllBytes(setPath);
+                if (setData.Length < 8) return;
 
-                File.WriteAllText(sampCfg, cfg);
+                // Таблица индексов разрешений GTA SA
+                var resolutionIndex = new Dictionary<string, int>
+                {
+                    { "640 x 480",   0 },
+                    { "800 x 600",   1 },
+                    { "1024 x 768",  2 },
+                    { "1152 x 864",  3 },
+                    { "1280 x 1024", 4 },
+                    { "1600 x 900",  5 },
+                    { "1920 x 1080", 6 },
+                    { "2560 x 1440", 7 },
+                };
+
+                // Записываем индекс разрешения на offset 0
+                if (ResolutionBox.SelectedItem is ComboBoxItem resItem)
+                {
+                    string resStr = resItem.Content.ToString()!;
+                    if (resolutionIndex.TryGetValue(resStr, out int idx))
+                    {
+                        byte[] idxBytes = BitConverter.GetBytes((uint)idx);
+                        Array.Copy(idxBytes, 0, setData, 0, 4);
+                    }
+                }
+
+                // Записываем widescreen на offset 4
+                uint wide = WidescreenCheck.IsChecked == true ? 1u : 0u;
+                byte[] wideBytes = BitConverter.GetBytes(wide);
+                Array.Copy(wideBytes, 0, setData, 4, 4);
+
+                File.WriteAllBytes(setPath, setData);
             }
             catch { }
         }
