@@ -13,13 +13,12 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
-using Microsoft.Win32;
 
 namespace SAMPLauncher
 {
     public partial class MainWindow : Window
     {
-        private const string CurrentLauncherVersion = "1.0.4";
+        private const string CurrentLauncherVersion = "1.0.5";
 
         private string configPath = "config.json";
         private string _gamePath = "";
@@ -39,16 +38,9 @@ namespace SAMPLauncher
             if (string.IsNullOrEmpty(_gamePath))
                 _gamePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "files");
 
-            GamePathText.Text = _gamePath;
             _settingsLoaded = true;
 
-            NickNameBox.TextChanged += (s, e) => AutoSave();
-            ResolutionBox.SelectionChanged += (s, e) => AutoSave();
-            FpsLimitCheck.Checked += (s, e) => AutoSave();
-            FpsLimitCheck.Unchecked += (s, e) => AutoSave();
-            FpsLimitBox.SelectionChanged += (s, e) => AutoSave();
-            WidescreenCheck.Checked += (s, e) => AutoSave();
-            WidescreenCheck.Unchecked += (s, e) => AutoSave();
+            NickNameBox.TextChanged += (s, e) => { if (_settingsLoaded) SaveSettings(); };
 
             UpdateServerInfo();
 
@@ -60,19 +52,14 @@ namespace SAMPLauncher
             _ = CheckLauncherUpdate();
         }
 
-        private void AutoSave()
-        {
-            if (!_settingsLoaded) return;
-            SaveSettings();
-            ApplyGameSettings();
-        }
+        // ===================== НАВИГАЦИЯ =====================
 
         private void NavHome_Click(object sender, MouseButtonEventArgs e)
         {
             PageHome.Visibility = Visibility.Visible;
             PageSettings.Visibility = Visibility.Collapsed;
             NavHome.Foreground = Brushes.White;
-            NavSettings.Foreground = new SolidColorBrush(Color.FromRgb(0x8A, 0x8F, 0x98));
+            NavSettings.Foreground = new SolidColorBrush(Color.FromRgb(0x55, 0x5A, 0x66));
         }
 
         private void NavSettings_Click(object sender, MouseButtonEventArgs e)
@@ -80,78 +67,10 @@ namespace SAMPLauncher
             PageHome.Visibility = Visibility.Collapsed;
             PageSettings.Visibility = Visibility.Visible;
             NavSettings.Foreground = Brushes.White;
-            NavHome.Foreground = new SolidColorBrush(Color.FromRgb(0x8A, 0x8F, 0x98));
-            GamePathText.Text = _gamePath;
+            NavHome.Foreground = new SolidColorBrush(Color.FromRgb(0x55, 0x5A, 0x66));
         }
 
-        private void FpsLimit_Changed(object sender, RoutedEventArgs e)
-        {
-            if (FpsLimitBox != null)
-                FpsLimitBox.IsEnabled = FpsLimitCheck.IsChecked == true;
-        }
-
-        private void ApplyGameSettings()
-        {
-            try
-            {
-                // sa-mp.cfg для FPS
-                string docPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-                string sampDir = Path.Combine(docPath, "GTA San Andreas User Files", "SAMP");
-                string sampCfg = Path.Combine(sampDir, "sa-mp.cfg");
-                if (!Directory.Exists(sampDir)) Directory.CreateDirectory(sampDir);
-
-                int fps = 60;
-                if (FpsLimitCheck.IsChecked == true && FpsLimitBox.SelectedItem is ComboBoxItem fpsItem)
-                {
-                    var fpsStr = fpsItem.Content.ToString()!.Replace(" FPS", "").Trim();
-                    if (fpsStr == "Без ограничений") fps = 0;
-                    else int.TryParse(fpsStr, out fps);
-                }
-                File.WriteAllText(sampCfg,
-                    $"pagesize 0\ncheckfiles 0\nfps {fps}\nmulticore 1\ndirectmode 0\n" +
-                    $"audiomsgoff 1\naudioproxyoff 0\nimeoff 0\nnovattention 0\n" +
-                    $"inbrowsers 0\nnonametagstatus 1\ntimestamp 0\nfontedge 0\n");
-
-                // gta_sa.set для разрешения и widescreen
-                string setPath = Path.Combine(docPath, "GTA San Andreas User Files", "gta_sa.set");
-                if (!File.Exists(setPath)) return;
-
-                byte[] setData = File.ReadAllBytes(setPath);
-                if (setData.Length < 8) return;
-
-                // Таблица индексов разрешений GTA SA
-                var resolutionIndex = new Dictionary<string, int>
-                {
-                    { "640 x 480",   0 },
-                    { "800 x 600",   1 },
-                    { "1024 x 768",  2 },
-                    { "1152 x 864",  3 },
-                    { "1280 x 1024", 4 },
-                    { "1600 x 900",  5 },
-                    { "1920 x 1080", 6 },
-                    { "2560 x 1440", 7 },
-                };
-
-                // Записываем индекс разрешения на offset 0
-                if (ResolutionBox.SelectedItem is ComboBoxItem resItem)
-                {
-                    string resStr = resItem.Content.ToString()!;
-                    if (resolutionIndex.TryGetValue(resStr, out int idx))
-                    {
-                        byte[] idxBytes = BitConverter.GetBytes((uint)idx);
-                        Array.Copy(idxBytes, 0, setData, 0, 4);
-                    }
-                }
-
-                // Записываем widescreen на offset 4
-                uint wide = WidescreenCheck.IsChecked == true ? 1u : 0u;
-                byte[] wideBytes = BitConverter.GetBytes(wide);
-                Array.Copy(wideBytes, 0, setData, 4, 4);
-
-                File.WriteAllBytes(setPath, setData);
-            }
-            catch { }
-        }
+        // ===================== ОБСЛУЖИВАНИЕ =====================
 
         private void ClearCache_Click(object sender, RoutedEventArgs e)
         {
@@ -187,6 +106,8 @@ namespace SAMPLauncher
             if (success)
                 MessageBox.Show("Проверка завершена. Все файлы в порядке!", "Починить игру");
         }
+
+        // ===================== ОБНОВЛЕНИЕ ЛАУНЧЕРА =====================
 
         private async Task CheckLauncherUpdate()
         {
@@ -229,7 +150,7 @@ namespace SAMPLauncher
                     await File.WriteAllBytesAsync(newExe, data);
                 }
 
-                string batchFile = Path.Combine(Path.GetTempPath(), "update_flyt.bat");
+                string batchFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "update_flyt.bat");
                 string batContent = $@"
 @echo off
 timeout /t 2 /nobreak > nul
@@ -248,6 +169,8 @@ del ""%~f0""
             }
         }
 
+        // ===================== СЕРВЕР =====================
+
         private void UpdateServerInfo()
         {
             OnlineIndicator.Fill = Brushes.Orange;
@@ -255,16 +178,16 @@ del ""%~f0""
 
             if (result.Success)
             {
-                OnlineIndicator.Fill = Brushes.LawnGreen;
+                OnlineIndicator.Fill = new SolidColorBrush(Color.FromRgb(0x32, 0xCD, 0x32));
                 OnlineText.Text = $"{result.Players}/{result.MaxPlayers}";
                 OnlineText.Foreground = Brushes.White;
                 StatusText.Text = "Готово к игре | Flyt RP";
             }
             else
             {
-                OnlineIndicator.Fill = Brushes.Red;
+                OnlineIndicator.Fill = new SolidColorBrush(Color.FromRgb(0xE0, 0x55, 0x55));
                 OnlineText.Text = "OFFLINE";
-                OnlineText.Foreground = Brushes.Red;
+                OnlineText.Foreground = new SolidColorBrush(Color.FromRgb(0xE0, 0x55, 0x55));
                 StatusText.Text = "Сервер недоступен";
             }
         }
@@ -305,6 +228,8 @@ del ""%~f0""
             return (false, 0, 0);
         }
 
+        // ===================== ИГРА =====================
+
         private async void Play_Click(object sender, RoutedEventArgs e)
         {
             var btn = (Button)sender;
@@ -312,12 +237,11 @@ del ""%~f0""
 
             if (!Directory.Exists(_gamePath)) Directory.CreateDirectory(_gamePath);
             SaveSettings();
-            ApplyGameSettings();
 
             bool updateSuccess = await RunUpdateProcess();
             if (!updateSuccess) { btn.IsEnabled = true; return; }
 
-            string sampExe = Path.Combine(_gamePath, "samp.exe");
+            string sampExe = System.IO.Path.Combine(_gamePath, "samp.exe");
             if (File.Exists(sampExe))
             {
                 Process.Start(new ProcessStartInfo
@@ -328,10 +252,15 @@ del ""%~f0""
                     UseShellExecute = true
                 });
             }
-            else { MessageBox.Show($"Файл samp.exe не найден по пути: {sampExe}"); }
+            else
+            {
+                MessageBox.Show($"Файл samp.exe не найден по пути:\n{sampExe}", "Flyt RP");
+            }
 
             btn.IsEnabled = true;
         }
+
+        // ===================== ОБНОВЛЕНИЕ ФАЙЛОВ =====================
 
         private async Task<bool> RunUpdateProcess(bool forceVerify = false)
         {
@@ -356,7 +285,7 @@ del ""%~f0""
                         if (cleanPath.StartsWith("files\\", StringComparison.OrdinalIgnoreCase)) cleanPath = cleanPath.Substring(6);
                         else if (cleanPath.StartsWith("files/", StringComparison.OrdinalIgnoreCase)) cleanPath = cleanPath.Substring(6);
 
-                        string localPath = Path.Combine(_gamePath, cleanPath);
+                        string localPath = System.IO.Path.Combine(_gamePath, cleanPath);
                         long remoteSize = (file.Bytes != null && file.Bytes.Count > 0) ? file.Bytes[0] : 0;
 
                         if (!File.Exists(localPath) || new FileInfo(localPath).Length != remoteSize)
@@ -374,7 +303,7 @@ del ""%~f0""
                             if (cleanName.StartsWith("files\\", StringComparison.OrdinalIgnoreCase)) cleanName = cleanName.Substring(6);
                             else if (cleanName.StartsWith("files/", StringComparison.OrdinalIgnoreCase)) cleanName = cleanName.Substring(6);
 
-                            StatusText.Text = $"Загрузка: {Path.GetFileName(cleanName)}";
+                            StatusText.Text = $"Загрузка: {System.IO.Path.GetFileName(cleanName)}";
                             DownloadProgress.Value = (double)(i + 1) / toDownload.Count * 100;
 
                             string baseCdn = dist.CdnCache?.TrimEnd('/') ?? "";
@@ -382,9 +311,9 @@ del ""%~f0""
                             string url = $"{baseCdn}/{urlPath}";
 
                             byte[] data = await client.GetByteArrayAsync(url);
-                            string savePath = Path.Combine(_gamePath, cleanName);
+                            string savePath = System.IO.Path.Combine(_gamePath, cleanName);
 
-                            string? dir = Path.GetDirectoryName(savePath);
+                            string? dir = System.IO.Path.GetDirectoryName(savePath);
                             if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
 
                             await File.WriteAllBytesAsync(savePath, data);
@@ -408,18 +337,13 @@ del ""%~f0""
             finally { DownloadProgress.IsIndeterminate = false; }
         }
 
-        private void SelectPath_Click(object sender, RoutedEventArgs e)
+        // ===================== ПРОЧЕЕ =====================
+
+        private void Header_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            OpenFileDialog ofd = new OpenFileDialog { Filter = "samp.exe|samp.exe" };
-            if (ofd.ShowDialog() == true)
-            {
-                _gamePath = Path.GetDirectoryName(ofd.FileName) ?? "";
-                GamePathText.Text = _gamePath;
-                SaveSettings();
-            }
+            if (e.LeftButton == MouseButtonState.Pressed) DragMove();
         }
 
-        private void Header_MouseDown(object sender, MouseButtonEventArgs e) { if (e.LeftButton == MouseButtonState.Pressed) DragMove(); }
         private void Close_Click(object sender, RoutedEventArgs e) => Application.Current.Shutdown();
 
         private void SaveSettings()
@@ -429,11 +353,7 @@ del ""%~f0""
                 File.WriteAllText(configPath, JsonSerializer.Serialize(new LauncherConfig
                 {
                     Nickname = NickNameBox.Text,
-                    GamePath = _gamePath,
-                    Resolution = (ResolutionBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "1920 x 1080",
-                    FpsLimit = FpsLimitCheck.IsChecked == true,
-                    FpsLimitValue = (FpsLimitBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "60 FPS",
-                    Widescreen = WidescreenCheck.IsChecked == true
+                    GamePath = _gamePath
                 }));
             }
             catch { }
@@ -448,16 +368,6 @@ del ""%~f0""
                     var config = JsonSerializer.Deserialize<LauncherConfig>(File.ReadAllText(configPath));
                     NickNameBox.Text = config?.Nickname ?? "Jake_Toren";
                     _gamePath = config?.GamePath ?? "";
-
-                    foreach (ComboBoxItem item in ResolutionBox.Items)
-                        if (item.Content?.ToString() == config?.Resolution) { item.IsSelected = true; break; }
-
-                    FpsLimitCheck.IsChecked = config?.FpsLimit ?? false;
-                    FpsLimitBox.IsEnabled = config?.FpsLimit ?? false;
-                    foreach (ComboBoxItem item in FpsLimitBox.Items)
-                        if (item.Content?.ToString() == config?.FpsLimitValue) { item.IsSelected = true; break; }
-
-                    WidescreenCheck.IsChecked = config?.Widescreen ?? false;
                 }
                 catch { }
             }
@@ -483,9 +393,5 @@ del ""%~f0""
     {
         public string? Nickname { get; set; }
         public string? GamePath { get; set; }
-        public string? Resolution { get; set; }
-        public bool FpsLimit { get; set; }
-        public string? FpsLimitValue { get; set; }
-        public bool Widescreen { get; set; }
     }
 }
