@@ -4,226 +4,298 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Flyt RP Launcher" Height="720" Width="1280" 
+        Title="Flyt RP Launcher" Height="720" Width="1280"
         WindowStartupLocation="CenterScreen"
         AllowsTransparency="True" WindowStyle="None" Background="Transparent">
-    
-    <Window.Resources>
-        <Style x:Key="SocialButton" TargetType="Button">
-            <Setter Property="Background" Value="#2A2D34"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Width" Value="40"/>
-            <Setter Property="Height" Value="40"/>
-            <Setter Property="Margin" Value="0,0,10,0"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FontSize" Value="10"/>
-            <Style.Resources>
-                <Style TargetType="Border">
-                    <Setter Property="CornerRadius" Value="20"/>
-                </Style>
-            </Style.Resources>
-        </Style>
 
-        <Style x:Key="NavText" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#8A8F98"/>
-            <Setter Property="FontSize" Value="14"/>
+    <Window.Resources>
+        <Style x:Key="NavItem" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#555A66"/>
+            <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Margin" Value="0,0,30,0"/>
+            <Setter Property="Margin" Value="0,0,28,0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
 
-        <Style x:Key="SettingsLabel" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#8A8F98"/>
+        <Style x:Key="CardButton" TargetType="Button">
+            <Setter Property="Background" Value="#1E2128"/>
+            <Setter Property="Foreground" Value="#C0C5D0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#2A2D38"/>
+            <Setter Property="Height" Value="48"/>
             <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Margin" Value="0,0,0,6"/>
-        </Style>
-
-        <Style x:Key="SettingsCombo" TargetType="ComboBox">
-            <Setter Property="Background" Value="#121417"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Height" Value="40"/>
-            <Setter Property="Padding" Value="10,0"/>
-            <Setter Property="FontSize" Value="14"/>
-        </Style>
-
-        <Style x:Key="ActionButton" TargetType="Button">
-            <Setter Property="Background" Value="#2A2D34"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Height" Value="44"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="20,0"/>
             <Style.Resources>
                 <Style TargetType="Border">
-                    <Setter Property="CornerRadius" Value="10"/>
+                    <Setter Property="CornerRadius" Value="12"/>
                 </Style>
             </Style.Resources>
         </Style>
+
+        <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource CardButton}">
+            <Setter Property="Background" Value="#1A1010"/>
+            <Setter Property="Foreground" Value="#E05555"/>
+            <Setter Property="BorderBrush" Value="#3A2020"/>
+        </Style>
+
+        <Style x:Key="GreenButton" TargetType="Button" BasedOn="{StaticResource CardButton}">
+            <Setter Property="Background" Value="#0F2010"/>
+            <Setter Property="Foreground" Value="#32CD32"/>
+            <Setter Property="BorderBrush" Value="#1E3A1E"/>
+        </Style>
     </Window.Resources>
 
-    <Border Background="#0D0F12" CornerRadius="20" MouseDown="Header_MouseDown">
+    <Border Background="#0A0C0F" CornerRadius="16" MouseDown="Header_MouseDown">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="40" Color="#000000" Opacity="0.8" ShadowDepth="0"/>
+        </Border.Effect>
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="80"/>
+                <RowDefinition Height="64"/>
                 <RowDefinition Height="*"/>
-                <RowDefinition Height="120"/>
+                <RowDefinition Height="110"/>
             </Grid.RowDefinitions>
 
+            <!-- Зелёная линия вверху -->
+            <Border Grid.Row="0" Height="1" VerticalAlignment="Top" CornerRadius="16,16,0,0">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                        <GradientStop Color="#00000000" Offset="0"/>
+                        <GradientStop Color="#6632CD32" Offset="0.5"/>
+                        <GradientStop Color="#00000000" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+            </Border>
+
             <!-- HEADER -->
-            <Grid Grid.Row="0" Margin="30,0">
+            <Grid Grid.Row="0" Margin="28,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Text="FLYT RP" Foreground="#32CD32" FontSize="28" FontWeight="Black" VerticalAlignment="Center" Grid.Column="0" FontStyle="Italic"/>
-
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="40,0,0,0" VerticalAlignment="Center">
-                    <TextBlock x:Name="NavHome" Text="ГЛАВНАЯ" Foreground="White" FontSize="14" FontWeight="Bold" Margin="0,0,30,0" Cursor="Hand" MouseDown="NavHome_Click"/>
-                    <TextBlock x:Name="NavSettings" Style="{StaticResource NavText}" Text="НАСТРОЙКИ" MouseDown="NavSettings_Click"/>
-                    <TextBlock Style="{StaticResource NavText}" Text="НОВОСТИ" Margin="0,0,30,0"/>
-                    <TextBlock Style="{StaticResource NavText}" Text="ФОРУМ" Margin="0"/>
+                <!-- LOGO -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="FLYT" Foreground="#32CD32" FontSize="22" FontWeight="Black" FontStyle="Italic"/>
+                    <TextBlock Text=" RP" Foreground="White" FontSize="22" FontWeight="Black" FontStyle="Italic"/>
+                    <Border Background="#32CD32" CornerRadius="4" Margin="10,0,0,0" Padding="6,2" VerticalAlignment="Center">
+                        <TextBlock Text="LAUNCHER" Foreground="#0A0C0F" FontSize="9" FontWeight="Black"/>
+                    </Border>
                 </StackPanel>
 
+                <!-- NAV -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="40,0,0,0" VerticalAlignment="Center">
+                    <TextBlock x:Name="NavHome" Text="ГЛАВНАЯ" Foreground="White" FontSize="13" FontWeight="Bold"
+                               Margin="0,0,28,0" Cursor="Hand" MouseDown="NavHome_Click"/>
+                    <TextBlock x:Name="NavSettings" Style="{StaticResource NavItem}" Text="НАСТРОЙКИ" MouseDown="NavSettings_Click"/>
+                    <TextBlock Style="{StaticResource NavItem}" Text="НОВОСТИ"/>
+                    <TextBlock Style="{StaticResource NavItem}" Text="ФОРУМ" Margin="0"/>
+                </StackPanel>
+
+                <!-- NICKNAME + CLOSE -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Style="{StaticResource SocialButton}" Content="VK"/>
-                    <Button Style="{StaticResource SocialButton}" Content="DS"/>
-                    <Button Style="{StaticResource SocialButton}" Content="TG"/>
-                    <Button Width="40" Height="40" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Close_Click" Margin="20,0,0,0">
-                        <TextBlock Text="✕" Foreground="#8A8F98" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <Border Background="#13151A" CornerRadius="10" BorderBrush="#1E2128" BorderThickness="1"
+                            Height="36" Padding="4,0,12,0" Margin="0,0,12,0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border Background="#1E2128" CornerRadius="8" Width="28" Height="28" Margin="0,0,8,0">
+                                <TextBlock Text="👤" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBox x:Name="NickNameBox" Background="Transparent" Foreground="White"
+                                     BorderThickness="0" FontSize="13" FontWeight="SemiBold"
+                                     VerticalContentAlignment="Center" Width="140"
+                                     Text="Jake_Toren" CaretBrush="White"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Button Width="36" Height="36" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Close_Click">
+                        <Border Background="#1E2128" CornerRadius="8" Width="32" Height="32">
+                            <TextBlock Text="✕" Foreground="#555A66" FontSize="14" FontWeight="Bold"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
                     </Button>
                 </StackPanel>
             </Grid>
 
-            <!-- CONTENT AREA -->
+            <!-- CONTENT -->
             <Grid Grid.Row="1">
 
                 <!-- ГЛАВНАЯ -->
-                <Border x:Name="PageHome" Margin="30,10,30,20" CornerRadius="20" Background="#1A1D21" ClipToBounds="True">
+                <Border x:Name="PageHome" Margin="28,8,28,16" CornerRadius="14" ClipToBounds="True">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,1" EndPoint="1,0">
+                            <GradientStop Color="#0F1218" Offset="0"/>
+                            <GradientStop Color="#131820" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
                     <Grid>
-                        <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="40,40">
-                            <TextBlock Text="ОБНОВЛЕНИЕ" Foreground="#32CD32" FontSize="14" FontWeight="Bold" Margin="0,0,0,10"/>
-                            <TextBlock Text="ЛЕТНИЙ СЕЗОН" Foreground="White" FontSize="48" FontWeight="Black" Margin="0,0,0,10"/>
-                            <TextBlock Text="Новые автомобили, работы и измененная карта уже на сервере!" Foreground="#8A8F98" FontSize="16" TextWrapping="Wrap" Width="400"/>
+                        <Ellipse Width="600" Height="600" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                 Margin="0,0,-200,-200">
+                            <Ellipse.Fill>
+                                <RadialGradientBrush>
+                                    <GradientStop Color="#1032CD32" Offset="0"/>
+                                    <GradientStop Color="#00000000" Offset="1"/>
+                                </RadialGradientBrush>
+                            </Ellipse.Fill>
+                        </Ellipse>
+                        <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="44,44">
+                            <Border Background="#1432CD32" CornerRadius="6" Padding="10,4"
+                                    HorizontalAlignment="Left" Margin="0,0,0,14">
+                                <TextBlock Text="● ОБНОВЛЕНИЕ" Foreground="#32CD32" FontSize="11" FontWeight="Bold"/>
+                            </Border>
+                            <TextBlock Text="ЛЕТНИЙ СЕЗОН" Foreground="White" FontSize="52" FontWeight="Black" Margin="0,0,0,12">
+                                <TextBlock.Effect>
+                                    <DropShadowEffect BlurRadius="30" Color="#32CD32" Opacity="0.12" ShadowDepth="0"/>
+                                </TextBlock.Effect>
+                            </TextBlock>
+                            <TextBlock Text="Новые автомобили, работы и измененная карта уже на сервере!"
+                                       Foreground="#555A66" FontSize="15" TextWrapping="Wrap" Width="420"/>
                         </StackPanel>
                     </Grid>
                 </Border>
 
                 <!-- НАСТРОЙКИ -->
-                <Border x:Name="PageSettings" Margin="30,10,30,20" CornerRadius="20" Background="#1A1D21" Visibility="Collapsed">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="40,30">
-                        <StackPanel>
-                            <TextBlock Text="НАСТРОЙКИ ИГРЫ" Foreground="White" FontSize="22" FontWeight="Black" Margin="0,0,0,30"/>
+                <Border x:Name="PageSettings" Margin="28,8,28,16" CornerRadius="14"
+                        Background="#0D0F13" Visibility="Collapsed">
+                    <Grid Margin="44,36,44,36">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="20"/>
+                            <RowDefinition Height="1"/>
+                            <RowDefinition Height="24"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
 
-                            <!-- Разрешение -->
-                            <TextBlock Text="Разрешение экрана" Style="{StaticResource SettingsLabel}"/>
-                            <ComboBox x:Name="ResolutionBox" Style="{StaticResource SettingsCombo}" Width="300" HorizontalAlignment="Left" Margin="0,0,0,20">
-                                <ComboBoxItem Content="800 x 600"/>
-                                <ComboBoxItem Content="1024 x 768"/>
-                                <ComboBoxItem Content="1280 x 720"/>
-                                <ComboBoxItem Content="1280 x 1024"/>
-                                <ComboBoxItem Content="1600 x 900"/>
-                                <ComboBoxItem Content="1920 x 1080" IsSelected="True"/>
-                                <ComboBoxItem Content="2560 x 1440"/>
-                            </ComboBox>
-
-                            <!-- FPS Limit -->
-                            <TextBlock Text="Ограничитель кадров (FPS Limit)" Style="{StaticResource SettingsLabel}"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,20" VerticalAlignment="Center">
-                                <CheckBox x:Name="FpsLimitCheck" Foreground="White" FontSize="14" VerticalAlignment="Center" Cursor="Hand" Margin="0,0,15,0" Checked="FpsLimit_Changed" Unchecked="FpsLimit_Changed"/>
-                                <ComboBox x:Name="FpsLimitBox" Style="{StaticResource SettingsCombo}" Width="150" IsEnabled="False">
-                                    <ComboBoxItem Content="30 FPS"/>
-                                    <ComboBoxItem Content="60 FPS" IsSelected="True"/>
-                                    <ComboBoxItem Content="100 FPS"/>
-                                    <ComboBoxItem Content="120 FPS"/>
-                                    <ComboBoxItem Content="Без ограничений"/>
-                                </ComboBox>
+                        <!-- Заголовок -->
+                        <StackPanel Grid.Row="0" Orientation="Horizontal">
+                            <Border Background="#1E2128" CornerRadius="10" Width="44" Height="44" Margin="0,0,14,0">
+                                <TextBlock Text="⚙" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="НАСТРОЙКИ" Foreground="White" FontSize="18" FontWeight="Black"/>
+                                <TextBlock Text="Управление и обслуживание игры" Foreground="#555A66" FontSize="12" Margin="0,3,0,0"/>
                             </StackPanel>
-
-                            <!-- Widescreen -->
-                            <TextBlock Text="Широкий экран (Widescreen Fix)" Style="{StaticResource SettingsLabel}"/>
-                            <CheckBox x:Name="WidescreenCheck" Content="Включить Widescreen Fix" Foreground="White" FontSize="14" Cursor="Hand" Margin="0,0,0,25"/>
-
-                            <Separator Background="#2A2D34" Margin="0,0,0,25"/>
-
-                            <!-- Путь к игре -->
-                            <TextBlock Text="Папка с игрой" Style="{StaticResource SettingsLabel}"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,25">
-                                <TextBlock x:Name="GamePathText" Text="" Foreground="#8A8F98" FontSize="13" VerticalAlignment="Center" Margin="0,0,15,0"/>
-                                <Button Style="{StaticResource ActionButton}" Content="Изменить путь" Width="150" Click="SelectPath_Click"/>
-                            </StackPanel>
-
-                            <Separator Background="#2A2D34" Margin="0,0,0,25"/>
-
-                            <!-- Очистка кэша -->
-                            <TextBlock Text="Обслуживание" Foreground="White" FontSize="16" FontWeight="Bold" Margin="0,0,0,15"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                <Button Style="{StaticResource ActionButton}" Content="🗑 Очистить кэш" Width="180" Click="ClearCache_Click" Margin="0,0,15,0"/>
-                                <Button Style="{StaticResource ActionButton}" Content="🔧 Починить игру" Width="180" Click="RepairGame_Click" Background="#1E3A1E">
-                                    <Button.Effect>
-                                        <DropShadowEffect BlurRadius="10" Color="#32CD32" Opacity="0.2" ShadowDepth="0"/>
-                                    </Button.Effect>
-                                </Button>
-                            </StackPanel>
-                            <TextBlock Text="«Починить игру» проверит все файлы и скачает отсутствующие или повреждённые." Foreground="#555A63" FontSize="12" Margin="0,6,0,0" TextWrapping="Wrap" Width="400"/>
-
                         </StackPanel>
-                    </ScrollViewer>
-                </Border>
 
+                        <Border Grid.Row="2" Background="#1A1D24"/>
+
+                        <TextBlock Grid.Row="3" Text="ОБСЛУЖИВАНИЕ" Foreground="#555A66"
+                                   FontSize="11" FontWeight="Bold" VerticalAlignment="Bottom"/>
+
+                        <StackPanel Grid.Row="4">
+                            <!-- Очистить кэш -->
+                            <Border Background="#13151A" CornerRadius="12" BorderBrush="#1A1D24"
+                                    BorderThickness="1" Margin="0,0,0,10" Padding="20,18">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Background="#1A1010" CornerRadius="10"
+                                            Width="44" Height="44" Margin="0,0,16,0">
+                                        <TextBlock Text="🗑" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock Text="Очистить кэш" Foreground="White" FontSize="14" FontWeight="SemiBold"/>
+                                        <TextBlock Text="Удалить все файлы игры и загрузить их заново при следующем запуске"
+                                                   Foreground="#555A66" FontSize="12" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="2" Style="{StaticResource DangerButton}"
+                                            Content="Очистить" Width="130" Click="ClearCache_Click"/>
+                                </Grid>
+                            </Border>
+
+                            <!-- Починить игру -->
+                            <Border Background="#13151A" CornerRadius="12" BorderBrush="#1A1D24"
+                                    BorderThickness="1" Padding="20,18">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Background="#0F2010" CornerRadius="10"
+                                            Width="44" Height="44" Margin="0,0,16,0">
+                                        <TextBlock Text="🔧" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock Text="Починить игру" Foreground="White" FontSize="14" FontWeight="SemiBold"/>
+                                        <TextBlock Text="Проверить целостность файлов и скачать отсутствующие или повреждённые"
+                                                   Foreground="#555A66" FontSize="12" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="2" Style="{StaticResource GreenButton}"
+                                            Content="Починить" Width="130" Click="RepairGame_Click"/>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </Border>
             </Grid>
 
             <!-- BOTTOM BAR -->
-            <Grid Grid.Row="2" Background="#16181C">
-                <Grid Margin="30,0">
+            <Border Grid.Row="2" Background="#0D0F13" CornerRadius="0,0,16,16" BorderThickness="0,1,0,0" BorderBrush="#13151A">
+                <Grid Margin="28,0">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
+                    <!-- Статус -->
                     <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <TextBox x:Name="NickNameBox" Width="200" Height="40" Background="#121417" Foreground="White" BorderThickness="0" Padding="15,0" FontSize="16" VerticalContentAlignment="Center" Text="Jake_Toren">
-                                <TextBox.Resources>
-                                    <Style TargetType="Border">
-                                        <Setter Property="CornerRadius" Value="10"/>
-                                    </Style>
-                                </TextBox.Resources>
-                            </TextBox>
-                        </StackPanel>
-                        
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock x:Name="StatusText" Text="Проверка файлов..." Foreground="#8A8F98" FontSize="12" Margin="0,0,15,0" VerticalAlignment="Center"/>
-                            <ProgressBar x:Name="DownloadProgress" Width="250" Height="4" Background="#2A2D34" Foreground="#32CD32" BorderThickness="0" VerticalAlignment="Center"/>
-                        </StackPanel>
+                        <TextBlock x:Name="StatusText" Text="Готово к игре"
+                                   Foreground="#555A66" FontSize="12" Margin="0,0,0,8"/>
+                        <ProgressBar x:Name="DownloadProgress" Width="300" Height="3"
+                                     HorizontalAlignment="Left" Background="#1A1D24" BorderThickness="0">
+                            <ProgressBar.Foreground>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                    <GradientStop Color="#1E8A1E" Offset="0"/>
+                                    <GradientStop Color="#32CD32" Offset="1"/>
+                                </LinearGradientBrush>
+                            </ProgressBar.Foreground>
+                        </ProgressBar>
                     </StackPanel>
 
-                    <Border Grid.Column="1" Background="#121417" CornerRadius="10" Height="50" Padding="15,0" VerticalAlignment="Center" Margin="0,0,20,0">
+                    <!-- Онлайн -->
+                    <Border Grid.Column="1" Background="#13151A" CornerRadius="12"
+                            BorderBrush="#1A1D24" BorderThickness="1"
+                            Height="54" Padding="18,0" VerticalAlignment="Center" Margin="0,0,14,0">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <Ellipse x:Name="OnlineIndicator" Width="8" Height="8" Fill="Gray" Margin="0,0,10,0"/> 
-                            <TextBlock Text="Flyt RP | Основной" Foreground="White" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                            <TextBlock x:Name="OnlineText" Text="? / ?" Foreground="#8A8F98" FontSize="14" VerticalAlignment="Center" FontWeight="Bold"/>
+                            <Ellipse x:Name="OnlineIndicator" Width="7" Height="7" Fill="#555A66" Margin="0,0,10,0"/>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Flyt RP · Основной" Foreground="#555A66" FontSize="11" Margin="0,0,0,3"/>
+                                <TextBlock x:Name="OnlineText" Text="— / —" Foreground="White"
+                                           FontSize="14" FontWeight="Bold"/>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 
-                    <Button Grid.Column="2" Content="ИГРАТЬ ›" Click="Play_Click" Width="200" Height="50" Background="#32CD32" Foreground="White" FontSize="18" FontWeight="Bold" Cursor="Hand" VerticalAlignment="Center">
+                    <!-- ИГРАТЬ -->
+                    <Button Grid.Column="2" Content="ИГРАТЬ  ›" Click="Play_Click"
+                            Width="180" Height="54" Foreground="White"
+                            FontSize="15" FontWeight="Black" Cursor="Hand"
+                            BorderThickness="0" VerticalAlignment="Center">
+                        <Button.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#1E8A1E" Offset="0"/>
+                                <GradientStop Color="#32CD32" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Button.Background>
                         <Button.Resources>
                             <Style TargetType="Border">
-                                <Setter Property="CornerRadius" Value="10"/>
+                                <Setter Property="CornerRadius" Value="12"/>
                             </Style>
                         </Button.Resources>
                         <Button.Effect>
-                            <DropShadowEffect BlurRadius="15" Color="#32CD32" Opacity="0.4" ShadowDepth="0"/>
+                            <DropShadowEffect BlurRadius="22" Color="#32CD32" Opacity="0.35" ShadowDepth="0"/>
                         </Button.Effect>
                     </Button>
                 </Grid>
-            </Grid>
+            </Border>
         </Grid>
     </Border>
 </Window>
