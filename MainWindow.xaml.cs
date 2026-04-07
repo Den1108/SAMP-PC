@@ -25,7 +25,7 @@ namespace SAMPLauncher
 
         private string serverIP = "188.127.241.8";
         private int serverPort = 1179;
-        private string distributionUrl = "http://87.106.105.24:12867/distribution.json";
+        private string distributionUrl = "http://bcgsqsat.centnodes.cloud/distribution.json";
 
         private DispatcherTimer _queryTimer;
         private bool _settingsLoaded = false;
