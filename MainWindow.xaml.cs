@@ -18,7 +18,7 @@ namespace SAMPLauncher
 {
     public partial class MainWindow : Window
     {
-        private const string CurrentLauncherVersion = "1.0.5";
+        private const string CurrentLauncherVersion = "1.0.6";
 
         private string configPath = "config.json";
         private string _gamePath = "";
