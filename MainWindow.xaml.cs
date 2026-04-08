@@ -18,13 +18,13 @@ namespace SAMPLauncher
 {
     public partial class MainWindow : Window
     {
-        private const string CurrentLauncherVersion = "1.0.6";
+        private const string CurrentLauncherVersion = "1.0.7";
 
         private string configPath = "config.json";
         private string _gamePath = "";
 
-        private string serverIP = "188.127.241.8";
-        private int serverPort = 1179;
+        private string serverIP = "89.163.213.148";
+        private int serverPort = 40006;
         private string distributionUrl = "http://bcgsqsat.centnodes.cloud/distribution.json";
 
         private DispatcherTimer _queryTimer;
